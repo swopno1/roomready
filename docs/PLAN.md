@@ -163,6 +163,9 @@ both clients implement the same contract (§4.3).
   reused: the same sync, push and jobs backbone can later serve WorkRoster,
   Estavo and the Chatbot — one lightweight service family, not one
   integration per product.
+- **Design.** The visual system — brand, logo + icon plan, bottom nav,
+  screens, themed colour tokens — lives in `docs/DESIGN.md`. Build work
+  follows it; no screen ships off-spec.
 
 ---
 

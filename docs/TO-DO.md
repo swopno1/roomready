@@ -205,6 +205,25 @@ week on the PWA with zero demo data.
 - [ ] Pages linked from the app settings screen + Play listing.
   (Counsel review stays in Phase 5 — draft now, sign off later.)
 
+### 2H. Design system (docs/DESIGN.md)
+
+- [ ] **Founder picks:** tagline (§1.3) + logo mark direction (§1.4).
+- [ ] Designer delivers the mark + icon set (§1.5); Cosmo replaces the
+  placeholder brand mark + PWA icons in place (same filenames, §2.2)
+  and adds the maskable 512 icon + Apple touch icon + favicon set.
+- [ ] `design-tokens.json` created (one source of truth, §5.1); PWA
+  consumes it as CSS custom properties (light / dark / high-contrast).
+- [ ] Top tabs replaced by the five-item bottom nav (§3): Home | Rooms |
+  Tickets | Activity | Profile — routes, badges, desktop left rail.
+- [ ] Screens rebuilt to §4: Home, Rooms, Room detail, Tickets, Ticket
+  detail, Activity (incl. the offline-proof block), Profile.
+- [ ] Status pills, checklist rows, cards, bottom sheets, toasts, offline
+  banner built to §6 (44 px targets, no colour-only status).
+- [ ] In-app icon set drawn (§7): 24 px stroke set, inline SVG.
+- [ ] Theme switcher in Profile (auto / light / dark / high-contrast)
+  + large-text toggle; contrast pairs verified ≥ 4.5:1 (§5.6).
+- [ ] Bengali UI strings in place (Phase 2 language work, §9).
+
 ### 🔒 Security gate — Phase 2
 - [ ] Auth spike answer implemented (no assumed token model in prod code)
 - [ ] Role enforcement tested server-side (each role × each action, §7.3)
@@ -416,6 +435,7 @@ incomplete.
 | §12 Roadmap | Phases 0–5B in order; §14 rehearsed before launch |
 | §13 Decisions | Decisions section above (all tracked) |
 | §14 Production wiring & deployment | **Phase 5B** (wiring, runbook, dress rehearsal, smoke tests) |
+| DESIGN.md (branding & design plan) | Phase 2H (tokens, bottom nav, screens, icons) + Phase 3 (Android applies the same tokens + adaptive icon) |
 
 ---
 
