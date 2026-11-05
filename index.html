@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>RoomReady — Offline Housekeeping for Resorts</title>
+<meta name="description" content="Offline-first housekeeping PWA for resorts. Room checklists, housekeeping status and maintenance tickets — all on-device, zero internet required.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1d3a2f">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">RR</span>
+    <div>
+      <h1>RoomReady</h1>
+      <p id="propertyName">Krishnachura Retreat · Himchari Hills</p>
+    </div>
+  </div>
+  <div class="net" id="netBadge" title="Network state">
+    <span class="net-dot" id="netDot"></span>
+    <span id="netLabel">Offline-ready</span>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button class="tab active" data-view="dashboard" role="tab">Dashboard</button>
+  <button class="tab" data-view="rooms" role="tab">Rooms</button>
+  <button class="tab" data-view="tickets" role="tab">Tickets <span class="count" id="ticketCount">0</span></button>
+  <button class="tab" data-view="about" role="tab">Offline proof</button>
+</nav>
+
+<main>
+  <!-- DASHBOARD -->
+  <section id="view-dashboard" class="view active">
+    <div class="stats" id="stats"></div>
+    <h2>Needs attention</h2>
+    <div id="attentionList" class="card-list"></div>
+    <h2>Today's turnover</h2>
+    <div id="turnoverList" class="card-list"></div>
+  </section>
+
+  <!-- ROOMS -->
+  <section id="view-rooms" class="view">
+    <div class="toolbar">
+      <input id="roomSearch" type="search" placeholder="Search rooms…" aria-label="Search rooms">
+      <select id="statusFilter" aria-label="Filter by status">
+        <option value="">All statuses</option>
+        <option value="ready">Ready</option>
+        <option value="dirty">Dirty</option>
+        <option value="cleaning">Cleaning</option>
+        <option value="inspected">Inspected</option>
+        <option value="ooo">Out of order</option>
+      </select>
+    </div>
+    <div id="roomList" class="card-list"></div>
+  </section>
+
+  <!-- ROOM DETAIL -->
+  <section id="view-room" class="view">
+    <button class="back" id="backToRooms">← All rooms</button>
+    <div id="roomDetail"></div>
+  </section>
+
+  <!-- TICKETS -->
+  <section id="view-tickets" class="view">
+    <form id="ticketForm" class="card form">
+      <h2>New maintenance ticket</h2>
+      <label>Room
+        <select id="ticketRoom" required></select>
+      </label>
+      <label>Issue
+        <input id="ticketTitle" required maxlength="120" placeholder="e.g. AC not cooling in bathroom">
+      </label>
+      <label>Priority
+        <select id="ticketPriority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
+      </label>
+      <button type="submit" class="btn primary">Add ticket</button>
+    </form>
+    <div id="ticketList" class="card-list"></div>
+  </section>
+
+  <!-- OFFLINE PROOF -->
+  <section id="view-about" class="view">
+    <div class="card">
+      <h2>Works with zero internet</h2>
+      <p>RoomReady is built for the airplane-mode test:</p>
+      <ul>
+        <li><strong>No network calls.</strong> Every asset is local. Open DevTools → Network and reload: zero remote requests.</li>
+        <li><strong>Service worker.</strong> On first load the worker caches the whole app, so it opens even with wifi and data off.</li>
+        <li><strong>On-device storage.</strong> Rooms, checklists and tickets live in your browser's local storage. Nothing leaves the device.</li>
+        <li><strong>Live indicator.</strong> The badge in the header follows the real network state — turn on airplane mode and watch it switch to <em>Offline</em> while the app keeps working.</li>
+      </ul>
+      <p class="muted">Try it: turn on airplane mode, reload the page, update a room, add a ticket. Everything still works.</p>
+      <div class="proof-row">
+        <span>Network now:</span>
+        <strong id="proofNet">—</strong>
+      </div>
+      <div class="proof-row">
+        <span>Service worker:</span>
+        <strong id="proofSW">—</strong>
+      </div>
+      <div class="proof-row">
+        <span>Stored locally:</span>
+        <strong id="proofStore">—</strong>
+      </div>
+      <button class="btn" id="resetDemo">Reset demo data</button>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>RoomReady · offline-first housekeeping · all data stays on this device</p>
+</footer>
+
+<script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+  }
+</script>
+</body>
+</html>
