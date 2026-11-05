@@ -59,7 +59,7 @@ TOC = [
     ("Architecture", "#3-architecture"),
     ("Suite wiring", "#4-wiring-with-vivereply-suite"),
     ("Features", "#5-proposed-features-phased"),
-    ("Android", "#6-android-app-plan-capacitor"),
+    ("Android", "#6-android-app-plan-native-kotlin"),
     ("Auth", "#7-authentication--authorization-with-vivereply-suite"),
     ("Security", "#8-security--standards-measurements-policy"),
     ("Legal", "#9-legal-pages"),
@@ -67,6 +67,7 @@ TOC = [
     ("Testing", "#11-testing--qa"),
     ("Roadmap", "#12-roadmap--milestones"),
     ("Decisions", "#13-decisions-needed-from-the-founder"),
+    ("Production wiring", "#14-production-wiring--deployment-runbook-the-final-piece"),
 ]
 
 md = PLAN.read_text(encoding="utf-8")
@@ -85,10 +86,11 @@ page = f"""<!DOCTYPE html>
 <body>
 <header><div class="wrap">
 <h1>RoomReady — Production Plan</h1>
-<p>Version 1.0 · draft for founder review · 5 November 2026</p>
+<p>Version 1.3 · re-validated 5 November 2026</p>
 <p>PWA + Android, wired with ViveReply Suite. Plan only — no app code
 changes accompany this document. &nbsp;·&nbsp; <a href="../">Back to the app</a>
-&nbsp;·&nbsp; <a href="PLAN.md">Read as Markdown</a></p>
+&nbsp;·&nbsp; <a href="PLAN.md">Read as Markdown</a>
+&nbsp;·&nbsp; <a href="TO-DO.md">To-Do (phased checklist)</a></p>
 </div></header>
 <nav class="toc"><div class="wrap">{toc_links}</div></nav>
 <main>

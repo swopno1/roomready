@@ -1,7 +1,8 @@
 # RoomReady — Production Plan
 
-**Version:** 1.1 — draft for founder review (updated 5 Nov 2026: Android path
-is native Kotlin + Python FastAPI, per founder preference)
+**Version:** 1.3 — draft for founder review (re-validated 5 Nov 2026:
+added §14 production wiring & deployment runbook; to-do coverage audit
+complete — every plan section maps to work)
 **Date:** 5 November 2026
 **Status:** Plan only. No app code changes accompany this document.
 **Repo:** [swopno1/roomready](https://github.com/swopno1/roomready)
@@ -12,8 +13,11 @@ is native Kotlin + Python FastAPI, per founder preference)
 > Sections 5–6 are what gets built, in what order. Sections 7–9 are the
 > obligations (auth, security, legal) that make it production-grade.
 > Section 10 is how it ships. Section 13 lists the decisions only the
-> founder can make. Anything marked **TBD** is a real open question, not a
-> detail to invent later.
+> founder can make. **Section 14 is the final piece: the production wiring
+> map and the deployment runbook** — how the pieces connect when live, and
+> the exact sequence that takes the product from staging to a paying
+> property. Anything marked **TBD** is a real open question, not a detail
+> to invent later.
 
 ---
 
@@ -41,7 +45,7 @@ every room.
 | Housekeeping staff | Tick turnover checklists, update room status, raise tickets, add room notes |
 | Housekeeping supervisor | Assign rooms, inspect and sign off, re-open failed inspections |
 | Maintenance staff | Pick up tickets, update progress, mark resolved with photo proof |
-| Front desk / manager | Read-only board of room readiness, block check-in until Ready/Inspected |
+| Front desk / manager | Read the readiness board; the Suite blocks check-in until a room is Ready/Inspected (§4.2) |
 | Resort owner | Reports: turnover time, rooms per staff per day, ticket SLA, property health |
 
 ### 1.4 The offline promise (non-negotiable)
@@ -61,6 +65,29 @@ every room.
   identified by unit; bookings are referenced by ID only.
 - No real-time chat, no guest messaging, no OTA sync. Those belong to the
   Suite roadmap, not this product.
+
+### 1.6 Business opportunity
+
+- **The wedge.** Incumbent housekeeping modules (Cloudbeds, Mews and the
+  like) assume connectivity. Bangladeshi resorts — hillside properties,
+  patchy wifi, staff on the floor — do not have it. Offline-first is the
+  differentiator, and it is demonstrable in 30 seconds: airplane mode on,
+  app still works. No competitor demo does that.
+- **Where revenue attaches.** RoomReady earns its keep in **Phase 2**,
+  not at the Android launch. A working housekeeping module in the Suite
+  demo makes Suite deals easier to close, and RoomReady is a future
+  add-on revenue line in the same shape as the Chatbot subscription
+  (model TBD, §13 — no figures in this plan). The Android app extends
+  reach; it does not create the revenue.
+- **Platform asset.** The Python Integration Service (§2.2) is the second
+  revenue lever: built once for RoomReady, it becomes the shared sync,
+  push and jobs backbone for WorkRoster, Estavo and the Chatbot — one
+  lightweight service family instead of one integration per product.
+  Every product after RoomReady gets cheaper to integrate.
+- **Revenue-first sequencing.** Under the founder's revenue-first
+  directive, Phase 2 (Suite wiring + pilot at a real property) outranks
+  Phase 3 (Android). If time gets short, Android slips; the Suite-wired
+  PWA does not.
 
 ---
 
@@ -212,8 +239,9 @@ Schema (core tables, all records carry `property_id`, `updated_at`,
 
 - REST, JSON, versioned (`/api/v1/...`). Pagination (cursor-based) on all
   list endpoints. Rate limits per property and per device.
-- All mutations are authenticated (§7) and validated at the boundary (Zod
-  schemas on the API, Prisma parameterized queries underneath).
+- All mutations are authenticated (§7) and validated at the boundary
+  (Zod schemas on the Suite/Next.js API, Pydantic models on the FastAPI
+  service, Prisma parameterized queries underneath).
 - No guest PII crosses this API (see §1.5, §8.4).
 
 ---
@@ -242,12 +270,19 @@ is the source of truth; RoomReady is the offline edge that feeds it.
 3. Supervisor inspects and signs off → status `Ready`.
 4. Suite releases the room for the next check-in. **Check-in is blocked
    until the room is Ready or Inspected** — the Suite enforces this, so a
-   guest is never walked to a dirty room.
+   guest is never walked to a dirty room. **Note:** this guard does not
+   exist in the Suite today. It is a Suite-repo change (check-in guard in
+   the booking flow, Muse Code / founder-local scope), listed as a
+   Phase-2 dependency in `docs/TO-DO.md` — not RoomReady work.
 5. If inspection fails → room back to Dirty with a note; the loop repeats.
 6. Maintenance issues found mid-turnover become tickets (§5), linked to the
    room and visible to the front desk.
 
 ### 4.3 API contract (draft — to freeze in Phase 2)
+
+**Status: none of these endpoints exist in the Suite today.** The contract
+below is proposed; all nine endpoints must be built in the Suite repo
+(or fronted by the Integration Service) during Phase 2.
 
 Base: `https://<property>.vivereply.com/api/v1` (embedded) or
 `https://suite.vivereply.com/api/v1` (standalone). Auth: §7.
@@ -287,7 +322,9 @@ Events (Suite → RoomReady, via webhook or SSE when online):
   Python Integration Service runs alongside from Phase 2 and owns the sync
   endpoint, push delivery and photo uploads — the Suite app calls it, and
   the Android app talks to it directly. This is the fastest path to a
-  pilot property.
+  pilot property. **Open spike (Phase 0):** the embedding mechanism —
+  static PWA files under `public/housekeeping` vs a Next.js route wrapping
+  the shell — is undecided and must be picked before Phase 2 build.
 - **Phase B — standalone (later).** RoomReady PWA + Android point at the
   Integration Service as their single backend; the service fronts the
   Suite API. Needs CORS allowlist, token auth (Authorization Code + PKCE
@@ -434,6 +471,14 @@ Suite, it goes on the Suite roadmap, not here.
 RoomReady does not run its own identity system. The Suite is the identity
 provider; RoomReady is a client of it.
 
+> **Verification required (Phase-0 spike).** The Suite's actual auth
+> implementation (session mechanism, token format, how a second service
+> validates a Suite-issued token) was **not verified against the Suite
+> code** when this plan was written. The §7.1 design below is the target;
+> if the spike finds the Suite cannot issue verifiable tokens to the
+> Python service, the auth design — and the Phase-2 schedule — must be
+> revised before build starts. Do not build auth on an assumption.
+
 ### 7.1 Authentication (how staff sign in)
 
 | Surface | Mechanism |
@@ -511,7 +556,11 @@ who/when/device/property.
   `includeSubDomains`, preload when stable).
 - **Content Security Policy:** strict CSP on the PWA shell (no inline
   scripts in the production build; nonces where needed). No `unsafe-inline`,
-  no `unsafe-eval`.
+  no `unsafe-eval`. **Known violation in the MVP:** `index.html` currently
+  registers the service worker with an inline `<script>` block. Before
+  CSP is enforced (Phase 2), that registration must move into `app.js`
+  (or use a nonce) — the plan's CSP and the shipped code disagree today,
+  and the code must change to match the plan.
 - **Headers:** `X-Content-Type-Options: nosniff`,
   `X-Frame-Options: SAMEORIGIN` (or `frame-ancestors 'self'`),
   `Referrer-Policy: strict-origin-when-cross-origin`,
@@ -527,6 +576,8 @@ who/when/device/property.
   placeholders only.
 - **Dependencies:** Dependabot on; `npm audit` in CI, failing the build on
   any **critical** finding and on **high** findings older than 14 days.
+  Same bar for the Python service (`pip-audit` in CI) and Android (Gradle
+  dependency verification + lint).
 - **Rate limiting:** login (5 attempts / 15 min / IP + account lockout
   after 10), sync endpoint (per device, burst-tolerant), public routes.
 - **Audit logging:** every auth event, role change, status change, ticket
@@ -561,7 +612,9 @@ failures, error spikes) → contain (revoke tokens, disable device, block IP)
   browser's profile encryption; warn on shared devices (a "shared device"
   mode that wipes local data on logout).
 - **No secrets on device:** API keys and service credentials never ship in
-  the client. The client holds only the user's own tokens.
+  the client. The client holds only the user's own tokens. No API keys or
+  service credentials in the Android APK either — nothing hardcoded in
+  `BuildConfig`, resources or the manifest.
 - **Remote wipe:** revoke device (§7.2) → tokens dead, local store wiped
   on next launch.
 
@@ -572,6 +625,12 @@ failures, error spikes) → contain (revoke tokens, disable device, block IP)
   no guest contact details, no payment data**. Bookings are referenced by
   ID only; if a UI ever needs a guest name, it fetches it live from the
   Suite and never persists it on-device.
+- **Photos.** Room photos can capture guest belongings or faces. Policy:
+  staff photograph the room, not people; avoid guest belongings where
+  possible; never photograph a guest. Photos are room evidence, kept with
+  the ticket/checklist record for 24 months (§8.4), and deleted with it.
+  Staff are briefed on this at onboarding; the app shows a one-line
+  reminder on the camera screen.
 - **Encryption:** in transit (TLS), at rest (Suite DB encryption, Android
   SQLCipher).
 - **Retention:** housekeeping logs 12 months, then anonymised (staff IDs
@@ -721,6 +780,7 @@ No real property data in `dev`. Ever.
 | Jan 2027 | Pilot at Krishnachura Retreat (staff UAT week, PWA) + native Android build |
 | Feb 2027 | Android beta (closed track) + production launch (PWA) for Suite properties |
 | Mar 2027 | Android production launch (staged rollout) |
+| **Before launch** | Production wiring & deployment runbook (§14) written, rehearsed on staging, and signed off |
 
 Dates after November are targets, not commitments — the founder confirms
 each gate.
@@ -748,8 +808,107 @@ each gate.
 - [ ] **Play Store account:** use the existing publisher account, or
       create one for ViveScript? (Needs the $25 one-time registration if
       new — founder pays, not Cosmo.)
+- [ ] **Concurrent sessions:** cap simultaneous staff sessions per
+      account? (Yes/no + number — §8.1 leaves this open.)
 - [ ] **Analytics:** none by default (privacy-first). Add
       privacy-respecting analytics later, or keep it at zero?
+
+---
+
+## 14. Production wiring & deployment runbook (the final piece)
+
+This section answers the two questions every other section assumes away:
+**what connects to what when live, and in what order do we ship it?**
+Nothing here is aspirational — it is the checklist the launch runs on.
+
+### 14.1 Production wiring map
+
+| Component | Lives at | Talks to | Auth | Notes |
+|---|---|---|---|---|
+| PWA shell | Vercel — same project as the Suite (Phase A); own project (Phase B) | Integration Service + Suite API | Shared session cookie (A) / Bearer token (B) | Immutable deploys, instant rollback |
+| Integration Service (Python/FastAPI) | Lightweight host — Render / Fly.io / VPS (§13) | **Suite API only** — never the Suite DB directly | Validates Suite-issued tokens | Own small Postgres (sync ledger) + Redis queue |
+| Suite API + DB | Suite deployment (Next.js + Supabase Postgres + Prisma) | — | — | Source of truth; PITR backups on |
+| Android app | Play Store | Integration Service (single backend, both phases) | OAuth + PKCE, Keystore tokens | Staged rollout, halt criteria (§6.2) |
+| Push (FCM) | Firebase project (§13 spike) | Integration Service → FCM → devices | FCM server key (host secret) | Assignment, urgent ticket, inspection failed |
+| Photo storage | Supabase Storage (to confirm, Phase-0 spike) | Suite API / Integration Service | Signed URLs, short-lived | Virus scan before serving (§2B) |
+| Domains | `*.vivereply.com` property subdomains; `suite.vivereply.com`; Integration Service domain **TBD** (proposed: `sync.vivereply.com`) | — | TLS 1.2+ everywhere, HSTS | DNS cutover is a runbook step (§14.2) |
+
+**Wiring rules (non-negotiable):**
+
+1. **The Integration Service never touches the Suite DB directly.**
+   It talks to the Suite through the API only. That keeps the Suite's
+   invariants (booking states, role checks, audit log) intact no matter
+   what the sync layer does.
+2. **No secret is ever in the repo, the client bundle, or the APK.**
+   Secrets live in exactly three places: Vercel env (Suite/PWA), the
+   host's secret store (Integration Service), and the founder's password
+   manager (signing keys, Firebase server key). The env/secret inventory
+   is a living document (`docs/security/secrets-inventory.md`, names only,
+   never values) — written in Phase 2, audited at every launch gate.
+3. **CORS (Phase B only):** exact-origin allowlist — the PWA origin and
+   nothing else. No wildcard, no `*`.
+4. **Cookies (Phase A):** shared session cookie is `httpOnly`, `Secure`,
+   `SameSite=Lax`, scoped to the Suite's domain. The PWA and the Suite
+   share the origin, so there is no cross-origin cookie problem to solve.
+5. **Version skew:** the API stays backwards-compatible for two versions
+   (§6.5). A deploy never breaks a client that shipped last month.
+
+### 14.2 Deployment runbook (ordered — the go-live sequence)
+
+Run top to bottom. Stop at the first failed step; roll back that step
+before continuing. Rehearse the whole sequence on staging first (dress
+rehearsal, `TO-DO.md` Phase 5B).
+
+| Step | Action | Owner |
+|---|---|---|
+| 0 | **Freeze.** No merges to `main` in any of the three repos (Suite, Integration Service, RoomReady) until go-live completes or is aborted. Announce the freeze to the pilot property. | Founder |
+| 1 | **Suite API deploy.** Deploy the Suite with the §4.3 endpoints + check-in guard. Migrations are backwards-compatible (expand → migrate → contract; never destructive in one step). Verify on staging first. | Muse Code |
+| 2 | **Integration Service deploy.** New container image to the host. Health endpoint green, sync endpoint smoke-tested against staging Suite. Previous image kept for instant rollback. | Cosmo |
+| 3 | **PWA shell deploy.** Vercel production deploy (Phase A: same project as the Suite; Phase B: own project). Verify headers (CSP, HSTS) + the /docs route. | Cosmo |
+| 4 | **Android release.** Promote closed track → production, staged 10%. Watch crash rate + sync-failure rate for 24h before the next step. | Founder |
+| 5 | **DNS / cutover.** Point the Integration Service domain + property subdomains at production. Verify TLS on every host. | Founder |
+| 6 | **Smoke tests** (all must pass — see §14.3). | Cosmo |
+| 7 | **Monitoring window.** 48h of watched operation: Sentry, sync-failure rate, uptime checks, pilot staff on standby. No further deploys in the window except a hotfix. | Cosmo + Founder |
+| 8 | **Go-live comms.** Notify the pilot property (change window, what's new, who to call). Update the status page. | Founder |
+| 9 | **Retro.** File the launch retro within a week: what broke, what the runbook missed, what changes before the next property. | Cosmo |
+
+**Rollback triggers (any one aborts the launch):** smoke test failure;
+sync-failure rate > 1% in the monitoring window; crash rate above the
+Play halt criterion; auth errors spiking; any secret or data leak.
+Rollback is: Vercel instant rollback (shell) + previous container image
+(service) + Play staged halt (Android) + migration contract step (never a
+destructive reverse migration).
+
+### 14.3 Smoke tests (run at step 6, and after every production deploy)
+
+1. Staff login (each role) — Owner, Manager, Front Desk, Housekeeping.
+2. Room board loads with live Suite rooms (no demo data visible).
+3. Status change Dirty → Cleaning syncs to the Suite and appears in the
+   audit log.
+4. Offline → online replay: make 3 changes in airplane mode, reconnect,
+   all 3 land once (idempotency — no duplicates).
+5. Check-in blocked on a Dirty room; allowed on a Ready room.
+6. Ticket created offline, assigned, resolved with photo.
+7. Push notification received on Android for an urgent ticket.
+8. Device revoke: revoked device stops syncing, local data wiped on launch.
+9. Health endpoints green on all three components; uptime monitor shows
+   all green.
+
+### 14.4 Production readiness checklist (the gate — all must pass)
+
+- [ ] Wiring map (§14.1) matches reality — every row verified live.
+- [ ] Env/secret inventory written; zero secrets in any repo, bundle or APK.
+- [ ] DNS + TLS verified on every production host.
+- [ ] CORS tested from the real origins (Phase B).
+- [ ] Health endpoints green; uptime monitor + status page live; test
+      alert fired and received.
+- [ ] Sentry live on all three components with PII scrubbing on.
+- [ ] Backup restore drill passed (Suite DB PITR).
+- [ ] Runbook rehearsed end-to-end on staging (dress rehearsal).
+- [ ] Smoke tests (§14.3) green on production.
+- [ ] Pen-test findings fixed + retested (§8.2).
+- [ ] Legal pages live + counsel sign-off (§9).
+- [ ] Pilot property briefed (staff quick-start guide + photo policy).
 
 ---
 
