@@ -317,6 +317,10 @@ Events (Suite → RoomReady, via webhook or SSE when online):
 | Staff roles (Owner, Manager, Front Desk, Housekeeping, …) | Role mapping (§7.3) |
 | Folio / cash-shift / night-audit | Out of scope — never touched |
 
+> **S1 correction (5 Nov 2026):** the "Staff roles" row above was marked
+> verified but is not — actual Suite roles are `MemberRole = OWNER /
+> ADMIN / AGENT / VIEWER`. The Suite→RoomReady role mapping is TBD in S2.
+
 ### 4.5 Deployment topology (two phases)
 
 - **Phase A — embedded module (first).** RoomReady ships inside the Suite
@@ -474,13 +478,15 @@ Suite, it goes on the Suite roadmap, not here.
 RoomReady does not run its own identity system. The Suite is the identity
 provider; RoomReady is a client of it.
 
-> **Verification required (Phase-0 spike).** The Suite's actual auth
-> implementation (session mechanism, token format, how a second service
-> validates a Suite-issued token) was **not verified against the Suite
-> code** when this plan was written. The §7.1 design below is the target;
-> if the spike finds the Suite cannot issue verifiable tokens to the
-> Python service, the auth design — and the Phase-2 schedule — must be
-> revised before build starts. Do not build auth on an assumption.
+> **Verified 5 Nov 2026 (Phase-0 spike S1 — see
+> `docs/phase0/spikes/auth.md`).** The Suite runs NextAuth (v4)
+> Credentials + JWT strategy (`apps/dashboard/src/lib/auth.ts`):
+> email + scrypt password login, JWE-encrypted session cookie holding
+> only the user id, 30-day default expiry (no `maxAge` configured),
+> per-route enforcement via `withWorkspace`, no 2FA, no server-side
+> session list. §7.1/§7.2/§7.4 below are revised to this reality; the
+> 15-min/7-day token model originally written here is deferred to
+> Phase B OAuth. Do not revert to the unverified design.
 
 ### 7.1 Authentication (how staff sign in)
 
@@ -490,30 +496,58 @@ provider; RoomReady is a client of it.
 | Standalone PWA (Phase B) | OAuth 2.0 Authorization Code + PKCE against the Suite, tokens in memory + `httpOnly` refresh cookie. No tokens in `localStorage`. |
 | Android app (Phase B) | Same OAuth + PKCE flow via Custom Tabs; tokens in EncryptedSharedPreferences / Android Keystore. |
 
-Token policy:
+Token policy (verified reality + Phase-2A changes):
 
-- **Access token:** 15 minutes, JWT, scoped to one property + role.
-- **Refresh token:** 7 days, rotating on each use, revocable server-side.
-  Re-use of a refresh token revokes the whole token family (theft detection).
-- **Absolute session limit:** 30 days, then full re-authentication.
+- **Suite session (Phase A):** NextAuth session cookie, user id only.
+  Scope (workspace/property) and role are resolved server-side per
+  request, never carried in the token.
+- **Lifetime:** 30 days today (NextAuth default); Phase 2A sets
+  `session.maxAge` to **24 hours** (one line, per founder decision) to
+  bound the stolen-token window.
+- **Second-service validation:** introspection, not local verification.
+  The Integration Service POSTs the client's session token to Suite
+  `POST /api/v1/auth/introspect` (new Phase-2A endpoint, service key,
+  ~60s result cache) and receives
+  `{ userId, workspaceId, role, expiresAt }`. `NEXTAUTH_SECRET` is never
+  shared out of the Suite. (Direct Python verification was rejected in
+  S1: the tokens are JWE-encrypted and carry no scope/role.)
+- **Phase B (deferred):** the short-lived access (15 min) + rotating
+  refresh (7 day) + 30-day absolute model moves to the standalone
+  OAuth + PKCE design. Not built in Phase 2.
 - **Offline grace:** a cached session lets the app keep working offline for
-  up to 7 days; on reconnect the token is refreshed silently. Past 7 days
-  offline, the app requires re-authentication before syncing (local data
-  stays readable, new syncs are blocked until auth succeeds).
+  up to 7 days; on reconnect the token is revalidated via introspection
+  (silently when still valid). Past 7 days offline, or with an expired or
+  revoked token, the app requires re-authentication before syncing (local
+  data stays readable, new syncs are blocked until auth succeeds).
 
 ### 7.2 Device trust
+
+> None of this exists in the Suite today (S1: JWT strategy, no Session
+> model) — all of it is Phase-2A build work, not verification.
 
 - Each device gets a `device_id` on first login (stored server-side per user).
 - Owners/managers can list and revoke devices from Suite admin.
 - A revoked device stops syncing immediately; its local data is wiped on
   next launch (or next sync attempt, whichever comes first).
+- Simple revocation: a `tokenVersion` counter on `User`, checked by the
+  introspection endpoint — password change or admin revoke bumps it and
+  outstanding tokens fail validation. (No full DB-session migration needed.)
 - Lost/stolen device procedure: revoke from Suite admin → tokens dead →
   local data unreadable without the app's encrypted store (§8.3).
+  Until 2A ships, the stolen-token window equals token lifetime (30d now,
+  24h after the `maxAge` change).
 
 ### 7.3 Authorization — role matrix
 
-Roles come from the Suite (verified: Owner, Manager, Front Desk,
-Housekeeping, Kitchen, Storekeeper, Accountant, HR, Auditor). RoomReady
+> **S1 correction (5 Nov 2026):** the Suite's actual roles are
+> `MemberRole = OWNER / ADMIN / AGENT / VIEWER`
+> (`packages/db/prisma/schema.prisma`) — chat-workspace roles, not the
+> hospitality list previously claimed here as "verified". The matrix below
+> is the RoomReady-side target; S2 must define the Suite→RoomReady role
+> mapping (or new Suite roles) before sign-off. Do not treat this matrix
+> as agreed with the Suite until S2 lands.
+
+Roles come from the Suite (mapping TBD in S2). RoomReady
 uses the subset below; unlisted roles have **no access** to RoomReady.
 
 | Action | Owner | Manager | Front Desk | Housekeeping | Supervisor* | Maintenance | Auditor |
@@ -542,7 +576,10 @@ who/when/device/property.
 
 ### 7.4 Two-factor authentication
 
-- Owners and Managers: 2FA required (Suite's existing 2FA).
+> S1: no 2FA exists in the Suite today (credentials-only login). All of
+> this is Phase-2A build work, not verification.
+
+- Owners and Managers: 2FA required (to be built at Suite login in 2A).
 - Other roles: 2FA optional, recommended for supervisors.
 - 2FA is enforced at Suite login; RoomReady inherits it (no separate 2FA).
 
@@ -706,11 +743,14 @@ No real property data in `dev`. Ever.
   PR.
 - **API + DB:** the Suite's existing deployment (Next.js + Supabase
   Postgres + Prisma).
-- **Integration Service (Python/FastAPI):** one Docker container on a
-  lightweight host (Render, Fly.io or a small VPS — founder to pick, §13).
-  ~256–512 MB RAM is enough: it is stateless except for its small sync
-  ledger (Postgres) and a Redis queue for background jobs. Health endpoint
-  + zero-downtime deploys; logs shipped to the same sink as the Suite.
+- **Integration Service (Python/FastAPI):** serverless on Modal
+  Starter (free tier + founder credits — decided 5 Nov 2026, §13).
+  A plain FastAPI app (container build kept for portability); stateless
+  except for its small sync ledger (Postgres) and Modal Cron + Postgres
+  for background jobs (Redis only if outgrown). Serves on Modal's default
+  URL (unbranded accepted); the frontend keeps the custom domain. Health
+  endpoint + zero-downtime deploys; logs shipped to the same sink as the
+  Suite.
 - **Android:** Play Internal track on every tagged release; promotion is
   manual (closed → production).
 - **CI (GitHub Actions) on every PR:** web — lint, typecheck, unit tests,
@@ -795,7 +835,9 @@ each gate.
 - [x] **Android path:** native Kotlin + Python FastAPI — **confirmed by
       founder 5 Nov 2026** (light, secure, reliable, integratable with
       other products).
-- [ ] **Integration Service hosting:** Render, Fly.io, or a small VPS?
+- [x] **Integration Service hosting:** Modal Starter (free tier) —
+      **decided by founder 5 Nov 2026** (backend on default Modal URL,
+      frontend on custom domain).
 - [ ] **Integration Service repo:** separate repo (recommended — shared
       across products) or inside the Suite repo?
 - [ ] **Deployment topology:** embedded Suite module first (recommended,
@@ -829,12 +871,12 @@ Nothing here is aspirational — it is the checklist the launch runs on.
 | Component | Lives at | Talks to | Auth | Notes |
 |---|---|---|---|---|
 | PWA shell | Vercel — same project as the Suite (Phase A); own project (Phase B) | Integration Service + Suite API | Shared session cookie (A) / Bearer token (B) | Immutable deploys, instant rollback |
-| Integration Service (Python/FastAPI) | Lightweight host — Render / Fly.io / VPS (§13) | **Suite API only** — never the Suite DB directly | Validates Suite-issued tokens | Own small Postgres (sync ledger) + Redis queue |
+| Integration Service (Python/FastAPI) | Modal Starter, free tier (D1 decided 5 Nov 2026) | **Suite API only** — never the Suite DB directly | Validates Suite-issued tokens | Own small Postgres (sync ledger) + Modal Cron (Redis only if outgrown) |
 | Suite API + DB | Suite deployment (Next.js + Supabase Postgres + Prisma) | — | — | Source of truth; PITR backups on |
 | Android app | Play Store | Integration Service (single backend, both phases) | OAuth + PKCE, Keystore tokens | Staged rollout, halt criteria (§6.2) |
 | Push (FCM) | Firebase project (§13 spike) | Integration Service → FCM → devices | FCM server key (host secret) | Assignment, urgent ticket, inspection failed |
 | Photo storage | Supabase Storage (to confirm, Phase-0 spike) | Suite API / Integration Service | Signed URLs, short-lived | Virus scan before serving (§2B) |
-| Domains | `*.vivereply.com` property subdomains; `suite.vivereply.com`; Integration Service domain **TBD** (proposed: `sync.vivereply.com`) | — | TLS 1.2+ everywhere, HSTS | DNS cutover is a runbook step (§14.2) |
+| Domains | `*.vivereply.com` property subdomains; `suite.vivereply.com`; Integration Service on default Modal URL (unbranded accepted per D1 — branded `sync.vivereply.com` needs Modal Team, revisit post-revenue) | — | TLS 1.2+ everywhere, HSTS | DNS cutover is a runbook step (§14.2) |
 
 **Wiring rules (non-negotiable):**
 

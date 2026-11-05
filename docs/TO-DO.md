@@ -20,11 +20,12 @@ assumptions.
 **Exit:** every spike has a written answer in `PLAN.md` or here; all
 founder decisions in §13 that gate Phase 2 are made.
 
-- [ ] **Spike: Suite auth — verify, don't assume.** Read the Suite's actual
-  auth implementation (session mechanism, token format, how a second service
-  validates a Suite-issued token). Answer: can the Python service validate
-  Suite tokens (JWKS / shared secret / introspection)? If not, revise §7
-  before Phase 2. **Owner:** Muse Code (read-only inspection) + Cosmo (record)
+- [x] **Spike: Suite auth — verify, don't assume.** → Answered 5 Nov 2026:
+  NextAuth Credentials + JWT (user id only, 30d default); validation via new
+  Suite `POST /api/v1/auth/introspect` (service key, ~60s cache); `maxAge` →
+  24h + `tokenVersion` revoke in Phase 2A; no 2FA / no sessions today (both
+  become 2A build work). Full answer in `docs/phase0/spikes/auth.md`; §7
+  revised. **Owner:** Muse Code (read-only inspection) + Cosmo (record)
 - [ ] **Spike: Suite API inventory.** List what the Suite already exposes
   for rooms, units, staff, roles, booking states. Map each §4.3 endpoint to
   "exists / extend / build new". **Owner:** Muse Code
@@ -37,8 +38,9 @@ founder decisions in §13 that gate Phase 2 are made.
 - [ ] **Spike: FCM project.** Confirm the Firebase project for push
   (new vs existing), who holds the server key, and the sender ID.
   **Owner:** Founder
-- [ ] **Decision: Integration Service hosting.** Render, Fly.io, or small
-  VPS (§13). **Owner:** Founder
+- [x] **Decision: Integration Service hosting.** → Modal Starter
+  (free tier), backend on default Modal URL, frontend on custom domain
+  (decided 5 Nov 2026 — see `docs/phase0/decisions.md` D1). **Owner:** Founder
 - [ ] **Decision: Integration Service repo.** Separate repo (recommended —
   shared across products) or inside the Suite repo. **Owner:** Founder
 - [ ] **Decision: deployment topology.** Embedded Suite module first
@@ -59,7 +61,7 @@ founder decisions in §13 that gate Phase 2 are made.
   paying property. **Owner:** Founder
 
 ### 🔒 Security gate — Phase 0
-- [ ] Auth spike answered in writing (no build starts on an assumed token model)
+- [x] Auth spike answered in writing (no build starts on an assumed token model)
 - [ ] Threat model sketched: assets (staff creds, room state, photos),
   attackers (stolen device, malicious staff, network attacker), top 5 risks
   with mitigations mapped to §8
@@ -109,6 +111,10 @@ week on the PWA with zero demo data.
   with the founder; every cell confirmed.
 - [ ] Build the §4.3 API endpoints (rooms, status, templates, tickets,
   sync, assignments, report). All nine, versioned `/api/v1`.
+- [ ] Auth introspection endpoint `POST /api/v1/auth/introspect` for the
+  Integration Service (from S1: validates session token, returns
+  user/workspace/role/expiry; service key; `tokenVersion` check) +
+  `session.maxAge` → 24h + `tokenVersion` on `User`.
 - [ ] **Check-in guard:** block check-in until room is Ready/Inspected
   (§4.2 step 4). Suite-repo change — RoomReady cannot do this alone.
 - [ ] Checkout → turnover job trigger (room → Dirty, checklist reset,
@@ -121,7 +127,9 @@ week on the PWA with zero demo data.
   age, failed-operation counts (§3.3, §10.3).
 - [ ] Device list + revoke UI in Suite admin; lost/stolen device procedure
   doc (§7.2).
-- [ ] Verify 2FA enforcement for Owner/Manager at Suite login (§7.4).
+- [ ] Build 2FA enforcement for Owner/Manager at Suite login — S1 found
+  no 2FA exists today (credentials-only), so this is build work, not
+  verification (§7.4).
 - [ ] Property setup wizard: import units → import staff → pick templates
   → assign on-duty staff (§4.6).
 - [ ] Photo storage backend (from Phase-0 spike) wired to ticket/checklist
@@ -137,7 +145,9 @@ week on the PWA with zero demo data.
   by the external monitor, §10.3).
 - [ ] Sync endpoint: outbox replay with idempotency ledger + conflict
   rules (§3.3). Unit tests for every conflict rule.
-- [ ] Token validation against Suite (from Phase-0 auth spike).
+- [ ] Token validation against Suite via the introspection endpoint
+  (from S1: POST session token, service key, ~60s cache; no shared
+  `NEXTAUTH_SECRET`).
 - [ ] Push delivery (FCM): assignment, urgent ticket, inspection failed.
 - [ ] Photo upload endpoint (resumable, virus-scan hook — ClamAV or
   provider scan before serving).
@@ -372,7 +382,7 @@ is a sequence, not a hope.
 ## Decisions (from PLAN.md §13 — tracked here so they close)
 
 - [x] Android path: native Kotlin + Python FastAPI (confirmed 5 Nov 2026)
-- [ ] Integration Service hosting (Phase 0)
+- [x] Integration Service hosting → Modal Starter (Phase 0)
 - [ ] Integration Service repo: separate vs Suite repo (Phase 0)
 - [ ] Deployment topology: embedded first vs standalone (Phase 0)
 - [ ] Business model: bundled vs add-on subscription (Phase 0)

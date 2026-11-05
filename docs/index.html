@@ -485,6 +485,11 @@ below is proposed; all nine endpoints must be built in the Suite repo
 </tr>
 </tbody>
 </table>
+<blockquote>
+<p><strong>S1 correction (5 Nov 2026):</strong> the "Staff roles" row above was marked
+verified but is not — actual Suite roles are <code>MemberRole = OWNER /
+ADMIN / AGENT / VIEWER</code>. The Suite→RoomReady role mapping is TBD in S2.</p>
+</blockquote>
 <h3 id="45-deployment-topology-two-phases">4.5 Deployment topology (two phases)</h3>
 <ul>
 <li><strong>Phase A — embedded module (first).</strong> RoomReady ships inside the Suite
@@ -790,13 +795,15 @@ Suite, it goes on the Suite roadmap, not here.</p>
 <p>RoomReady does not run its own identity system. The Suite is the identity
 provider; RoomReady is a client of it.</p>
 <blockquote>
-<p><strong>Verification required (Phase-0 spike).</strong> The Suite's actual auth
-implementation (session mechanism, token format, how a second service
-validates a Suite-issued token) was <strong>not verified against the Suite
-code</strong> when this plan was written. The §7.1 design below is the target;
-if the spike finds the Suite cannot issue verifiable tokens to the
-Python service, the auth design — and the Phase-2 schedule — must be
-revised before build starts. Do not build auth on an assumption.</p>
+<p><strong>Verified 5 Nov 2026 (Phase-0 spike S1 — see
+<code>docs/phase0/spikes/auth.md</code>).</strong> The Suite runs NextAuth (v4)
+Credentials + JWT strategy (<code>apps/dashboard/src/lib/auth.ts</code>):
+email + scrypt password login, JWE-encrypted session cookie holding
+only the user id, 30-day default expiry (no <code>maxAge</code> configured),
+per-route enforcement via <code>withWorkspace</code>, no 2FA, no server-side
+session list. §7.1/§7.2/§7.4 below are revised to this reality; the
+15-min/7-day token model originally written here is deferred to
+Phase B OAuth. Do not revert to the unverified design.</p>
 </blockquote>
 <h3 id="71-authentication-how-staff-sign-in">7.1 Authentication (how staff sign in)</h3>
 <table>
@@ -821,29 +828,59 @@ revised before build starts. Do not build auth on an assumption.</p>
 </tr>
 </tbody>
 </table>
-<p>Token policy:</p>
+<p>Token policy (verified reality + Phase-2A changes):</p>
 <ul>
-<li><strong>Access token:</strong> 15 minutes, JWT, scoped to one property + role.</li>
-<li><strong>Refresh token:</strong> 7 days, rotating on each use, revocable server-side.
-  Re-use of a refresh token revokes the whole token family (theft detection).</li>
-<li><strong>Absolute session limit:</strong> 30 days, then full re-authentication.</li>
+<li><strong>Suite session (Phase A):</strong> NextAuth session cookie, user id only.
+  Scope (workspace/property) and role are resolved server-side per
+  request, never carried in the token.</li>
+<li><strong>Lifetime:</strong> 30 days today (NextAuth default); Phase 2A sets
+  <code>session.maxAge</code> to <strong>24 hours</strong> (one line, per founder decision) to
+  bound the stolen-token window.</li>
+<li><strong>Second-service validation:</strong> introspection, not local verification.
+  The Integration Service POSTs the client's session token to Suite
+  <code>POST /api/v1/auth/introspect</code> (new Phase-2A endpoint, service key,
+  ~60s result cache) and receives
+  <code>{ userId, workspaceId, role, expiresAt }</code>. <code>NEXTAUTH_SECRET</code> is never
+  shared out of the Suite. (Direct Python verification was rejected in
+  S1: the tokens are JWE-encrypted and carry no scope/role.)</li>
+<li><strong>Phase B (deferred):</strong> the short-lived access (15 min) + rotating
+  refresh (7 day) + 30-day absolute model moves to the standalone
+  OAuth + PKCE design. Not built in Phase 2.</li>
 <li><strong>Offline grace:</strong> a cached session lets the app keep working offline for
-  up to 7 days; on reconnect the token is refreshed silently. Past 7 days
-  offline, the app requires re-authentication before syncing (local data
-  stays readable, new syncs are blocked until auth succeeds).</li>
+  up to 7 days; on reconnect the token is revalidated via introspection
+  (silently when still valid). Past 7 days offline, or with an expired or
+  revoked token, the app requires re-authentication before syncing (local
+  data stays readable, new syncs are blocked until auth succeeds).</li>
 </ul>
 <h3 id="72-device-trust">7.2 Device trust</h3>
+<blockquote>
+<p>None of this exists in the Suite today (S1: JWT strategy, no Session
+model) — all of it is Phase-2A build work, not verification.</p>
+</blockquote>
 <ul>
 <li>Each device gets a <code>device_id</code> on first login (stored server-side per user).</li>
 <li>Owners/managers can list and revoke devices from Suite admin.</li>
 <li>A revoked device stops syncing immediately; its local data is wiped on
   next launch (or next sync attempt, whichever comes first).</li>
+<li>Simple revocation: a <code>tokenVersion</code> counter on <code>User</code>, checked by the
+  introspection endpoint — password change or admin revoke bumps it and
+  outstanding tokens fail validation. (No full DB-session migration needed.)</li>
 <li>Lost/stolen device procedure: revoke from Suite admin → tokens dead →
-  local data unreadable without the app's encrypted store (§8.3).</li>
+  local data unreadable without the app's encrypted store (§8.3).
+  Until 2A ships, the stolen-token window equals token lifetime (30d now,
+  24h after the <code>maxAge</code> change).</li>
 </ul>
 <h3 id="73-authorization-role-matrix">7.3 Authorization — role matrix</h3>
-<p>Roles come from the Suite (verified: Owner, Manager, Front Desk,
-Housekeeping, Kitchen, Storekeeper, Accountant, HR, Auditor). RoomReady
+<blockquote>
+<p><strong>S1 correction (5 Nov 2026):</strong> the Suite's actual roles are
+<code>MemberRole = OWNER / ADMIN / AGENT / VIEWER</code>
+(<code>packages/db/prisma/schema.prisma</code>) — chat-workspace roles, not the
+hospitality list previously claimed here as "verified". The matrix below
+is the RoomReady-side target; S2 must define the Suite→RoomReady role
+mapping (or new Suite roles) before sign-off. Do not treat this matrix
+as agreed with the Suite until S2 lands.</p>
+</blockquote>
+<p>Roles come from the Suite (mapping TBD in S2). RoomReady
 uses the subset below; unlisted roles have <strong>no access</strong> to RoomReady.</p>
 <table>
 <thead>
@@ -980,8 +1017,12 @@ front-desk action in RoomReady.</p>
 the real boundary. Every mutation is written to the audit log with
 who/when/device/property.</p>
 <h3 id="74-two-factor-authentication">7.4 Two-factor authentication</h3>
+<blockquote>
+<p>S1: no 2FA exists in the Suite today (credentials-only login). All of
+this is Phase-2A build work, not verification.</p>
+</blockquote>
 <ul>
-<li>Owners and Managers: 2FA required (Suite's existing 2FA).</li>
+<li>Owners and Managers: 2FA required (to be built at Suite login in 2A).</li>
 <li>Other roles: 2FA optional, recommended for supervisors.</li>
 <li>2FA is enforced at Suite login; RoomReady inherits it (no separate 2FA).</li>
 </ul>
@@ -1209,11 +1250,14 @@ before the first Play submission and before the first paying property.</p>
   PR.</li>
 <li><strong>API + DB:</strong> the Suite's existing deployment (Next.js + Supabase
   Postgres + Prisma).</li>
-<li><strong>Integration Service (Python/FastAPI):</strong> one Docker container on a
-  lightweight host (Render, Fly.io or a small VPS — founder to pick, §13).
-  ~256–512 MB RAM is enough: it is stateless except for its small sync
-  ledger (Postgres) and a Redis queue for background jobs. Health endpoint</li>
-<li>zero-downtime deploys; logs shipped to the same sink as the Suite.</li>
+<li><strong>Integration Service (Python/FastAPI):</strong> serverless on Modal
+  Starter (free tier + founder credits — decided 5 Nov 2026, §13).
+  A plain FastAPI app (container build kept for portability); stateless
+  except for its small sync ledger (Postgres) and Modal Cron + Postgres
+  for background jobs (Redis only if outgrown). Serves on Modal's default
+  URL (unbranded accepted); the frontend keeps the custom domain. Health
+  endpoint + zero-downtime deploys; logs shipped to the same sink as the
+  Suite.</li>
 <li><strong>Android:</strong> Play Internal track on every tagged release; promotion is
   manual (closed → production).</li>
 <li><strong>CI (GitHub Actions) on every PR:</strong> web — lint, typecheck, unit tests,
@@ -1384,7 +1428,9 @@ each gate.</p>
 <li>[x] <strong>Android path:</strong> native Kotlin + Python FastAPI — <strong>confirmed by
       founder 5 Nov 2026</strong> (light, secure, reliable, integratable with
       other products).</li>
-<li>[ ] <strong>Integration Service hosting:</strong> Render, Fly.io, or a small VPS?</li>
+<li>[x] <strong>Integration Service hosting:</strong> Modal Starter (free tier) —
+      <strong>decided by founder 5 Nov 2026</strong> (backend on default Modal URL,
+      frontend on custom domain).</li>
 <li>[ ] <strong>Integration Service repo:</strong> separate repo (recommended — shared
       across products) or inside the Suite repo?</li>
 <li>[ ] <strong>Deployment topology:</strong> embedded Suite module first (recommended,
@@ -1431,10 +1477,10 @@ Nothing here is aspirational — it is the checklist the launch runs on.</p>
 </tr>
 <tr>
 <td>Integration Service (Python/FastAPI)</td>
-<td>Lightweight host — Render / Fly.io / VPS (§13)</td>
+<td>Modal Starter, free tier (D1 decided 5 Nov 2026)</td>
 <td><strong>Suite API only</strong> — never the Suite DB directly</td>
 <td>Validates Suite-issued tokens</td>
-<td>Own small Postgres (sync ledger) + Redis queue</td>
+<td>Own small Postgres (sync ledger) + Modal Cron (Redis only if outgrown)</td>
 </tr>
 <tr>
 <td>Suite API + DB</td>
@@ -1466,7 +1512,7 @@ Nothing here is aspirational — it is the checklist the launch runs on.</p>
 </tr>
 <tr>
 <td>Domains</td>
-<td><code>*.vivereply.com</code> property subdomains; <code>suite.vivereply.com</code>; Integration Service domain <strong>TBD</strong> (proposed: <code>sync.vivereply.com</code>)</td>
+<td><code>*.vivereply.com</code> property subdomains; <code>suite.vivereply.com</code>; Integration Service on default Modal URL (unbranded accepted per D1 — branded <code>sync.vivereply.com</code> needs Modal Team, revisit post-revenue)</td>
 <td>—</td>
 <td>TLS 1.2+ everywhere, HSTS</td>
 <td>DNS cutover is a runbook step (§14.2)</td>
