@@ -30,7 +30,8 @@ founder decisions in §13 that gate Phase 2 are made.
 - [x] **Spike: Suite API inventory.** → Answered 5 Nov 2026: Suite is
   `travel-scaffold` (not `../vivereply`); housekeeping machine, roles 1:1,
   booking triggers exist server-side; §4.3 = 4× Extend + 5× Build new;
-  role mapping closed except MAINTENANCE gap. Full answer in
+  role mapping closed (MAINTENANCE → MANAGER-delegated, decided 5 Nov).
+  Full answer in
   `docs/phase0/spikes/api-inventory.md`. **Owner:** Muse Code
 - [x] **Spike: embedding mechanism.** → Answered 5 Nov 2026: MVP ships
   standalone (no embed); Option A (`public/housekeeping`) recommended
@@ -40,36 +41,45 @@ founder decisions in §13 that gate Phase 2 are made.
 - [x] **Spike: photo storage.** → Answered 5 Nov 2026: R2 private bucket
   (not Supabase Storage — zero Supabase usage in Suite); MVP local-only.
   Full answer in `docs/phase0/spikes/photo-storage.md`. **Owner:** Muse Code
-- [ ] **Spike: FCM project.** Confirm the Firebase project for push
-  (new vs existing), who holds the server key, and the sender ID.
-  **Owner:** Founder
+- [x] **Spike: FCM project.** → Deferred post-MVP by founder decision
+  5 Nov 2026 (MVP has no push; no Firebase anywhere in Suite/ChatBot
+  repos — verified). Founder acts at integration. See
+  `docs/phase0/spikes/fcm.md` scope note. **Owner:** Founder
 - [x] **Decision: Integration Service hosting.** → Modal Starter
   (free tier), backend on default Modal URL, frontend on custom domain
   (decided 5 Nov 2026 — see `docs/phase0/decisions.md` D1). **Owner:** Founder
-- [ ] **Decision: Integration Service repo.** Separate repo (recommended —
-  shared across products) or inside the Suite repo. **Owner:** Founder
-- [ ] **Decision: deployment topology.** Embedded Suite module first
-  (recommended) or standalone from day one. **Owner:** Founder
-- [ ] **Decision: business model.** Bundled with Suite, or subscription
-  add-on like the Chatbot? (No figures.) **Owner:** Founder
-- [ ] **Decision: concurrent sessions.** Cap simultaneous staff sessions
-  per account? Yes/no + number. **Owner:** Founder
-- [ ] **Decision: data retention.** Confirm 12-month logs / 24-month
-  tickets + photos (§8.4) or change. **Owner:** Founder
-- [ ] **Decision: governing law / jurisdiction** for the Terms (§9).
+- [x] **Decision: Integration Service repo.** → Separate repo (decided
+  5 Nov 2026 — see `docs/phase0/decisions.md` D2). **Owner:** Founder
+- [x] **Decision: deployment topology.** → Standalone MVP, Option A
+  embed at integration (decided 5 Nov 2026 — D3; S3 acked).
+  **Owner:** Founder
+- [x] **Decision: business model.** → Subscription add-on like Concierge,
+  no figures (decided 5 Nov 2026 — D5). **Owner:** Founder
+- [x] **Decision: concurrent sessions.** → No cap (decided 5 Nov 2026 —
+  D4). **Owner:** Founder
+- [x] **Decision: data retention.** → Confirm 12/24 (decided 5 Nov 2026
+  — D6; audit purge job noted for Phase 4). **Owner:** Founder
+- [x] **Decision: governing law / jurisdiction** for the Terms (§9). →
+  Defer to counsel, decide in Phase 2G (decided 5 Nov 2026 — D7).
   **Owner:** Founder + counsel
-- [ ] **Account: Play Store publisher.** Use the existing account or create
-  one for ViveScript ($25 one-time, founder pays). **Owner:** Founder
-- [ ] **Account: Apple?** Out of scope — iOS is not in this roadmap.
-  Record the decision so it isn't re-litigated. **Owner:** Founder
+- [x] **Decision: pilot property.** → Demo branch `client/demo13`
+  (decided 5 Nov 2026 — D8). **Owner:** Founder
+- [x] **Decision: analytics.** → None by default (decided 5 Nov 2026 —
+  D9). **Owner:** Founder
+- [x] **Account: Play Store publisher.** → Existing account (decided
+  5 Nov 2026 — D10). **Owner:** Founder
+- [x] **Account: Apple?** → iOS out of scope, confirmed (decided
+  5 Nov 2026 — D11). **Owner:** Founder
 - [ ] **Legal: counsel engaged** for the four legal pages (§9) before any
-  paying property. **Owner:** Founder
+  paying property. (Verdict 5 Nov 2026: not yet — engage during Phase 0 /
+  2G so drafting has a reviewer. Only pending Phase-0 action.)
+  **Owner:** Founder
 
 ### 🔒 Security gate — Phase 0
 - [x] Auth spike answered in writing (no build starts on an assumed token model)
-- [ ] Threat model sketched: assets (staff creds, room state, photos),
-  attackers (stolen device, malicious staff, network attacker), top 5 risks
-  with mitigations mapped to §8
+- [x] Threat model sketched + signed off 5 Nov 2026 (assets, attackers,
+  top 5 risks with mitigations mapped to §8; review notes in
+  `docs/phase0/threat-model.md`)
 
 ---
 
@@ -82,12 +92,16 @@ founder decisions in §13 that gate Phase 2 are made.
 - [x] Verified: zero external requests, service worker caches, renders from seed data
 - [x] Repo created: `swopno1/roomready` (public, `main`)
 - [x] Code pushed (commit `5fa1250`) + PWA icons (commit `8c47082`)
+- [x] Manifest filled + installability verified (commit `50b9a80`;
+  re-verified 5 Nov: zero remote refs, SW assets on disk, secret scan clean)
 - [x] Production plan v1.0–v1.1 written (`docs/PLAN.md` + `/docs` route)
 - [ ] **Demo video:** record with the internet OFF on camera (airplane mode
   visible → app still works: tick a checklist, add a ticket). ≤ 3 min.
+  Script ready: `docs/SUBMISSION.md` §2 (~2:10 shot list + VO lines).
   **Owner:** Cosmo (rig) + Founder (voiceover if needed)
-- [ ] **Writeup + screenshot** for the Yard page (short: what it is, why
-  offline, how the test works). **Owner:** Cosmo
+- [ ] **Writeup + screenshot** for the Yard page. Writeup drafted
+  (`docs/SUBMISSION.md` §1, paste-ready); screenshot per §3 spec
+  (founder captures: Rooms board, airplane icon visible). **Owner:** Cosmo
 - [ ] **Submit on the Yard page** (repo + video + writeup + screenshot)
   before Sat 7 Nov, 00:00 Dhaka. **Owner:** Founder (submit click)
 - [ ] **Rank after lock:** rank a top 3 + one line on #1 (required to be
