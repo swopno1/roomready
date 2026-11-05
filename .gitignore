@@ -1,0 +1,10 @@
+# RoomReady's plan docs stay private — the public repo ships the PWA only.
+docs/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+
+# Local runs
+node_modules/
+*.log
