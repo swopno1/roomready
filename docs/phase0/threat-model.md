@@ -55,7 +55,7 @@ review. Closing 🔒 security gate G2 requires explicit review sign-off.
 
 ## Review sign-off
 
-- [ ] Founder reviewed assets + attackers (complete for Phase 0?)
-- [ ] Founder reviewed top-5 risks (right five? ordering right?)
-- [ ] Any risk needing a `PLAN.md` §8 change is filed
-- Reviewer: — Date: —
+- [x] Founder reviewed assets + attackers (complete for Phase 0?)
+- [x] Founder reviewed top-5 risks (right five? ordering right?)
+- [x] Any risk needing a `PLAN.md` §8 change is filed
+- Reviewer: Founder Date: 5 Nov 2026

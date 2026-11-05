@@ -58,9 +58,9 @@ mechanism; build new in Phase 2A (webhook or SSE TBD at contract freeze).
 Owner→OWNER, Manager→MANAGER, Front Desk→FRONT_DESK,
 Housekeeping→HOUSEKEEPING, Auditor→AUDITOR (read-only) — all 1:1, no Suite
 change. Supervisor = Suite role flag on HOUSEKEEPING (TBD in 2A, per
-TO-DO 2A). **Gap for founder:** no MAINTENANCE role exists (closest is
-deprecated STAFF) — either add the role or scope maintenance tickets to
-MANAGER-delegated HOUSEKEEPING; decide at contract freeze.
+TO-DO 2A). **MAINTENANCE gap — decided 5 Nov 2026:** no new role;
+maintenance tickets are scoped to MANAGER-delegated HOUSEKEEPING (no
+schema change).
 
 ## Migration seam (post-MVP integration shape)
 

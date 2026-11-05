@@ -13,12 +13,12 @@ Phase 2 are made; the 🔒 security gate passes.
 |---|---|---|---|---|
 | S1 | Suite auth spike | `spikes/auth.md` | Muse Code (inspect) + Cosmo (record) | Answered 5 Nov 2026 + repo-identity addendum 5 Nov 2026 |
 | S2 | Suite API inventory | `spikes/api-inventory.md` | Muse Code | Answered 5 Nov 2026 |
-| S3 | Embedding mechanism spike | `spikes/embedding.md` | Muse Code + Founder | Answered 5 Nov 2026 (MVP standalone; integration-time A needs founder ack) |
+| S3 | Embedding mechanism spike | `spikes/embedding.md` | Muse Code + Founder | Answered + acked 5 Nov 2026 |
 | S4 | Photo storage spike | `spikes/photo-storage.md` | Muse Code | Answered 5 Nov 2026 |
 | S5 | FCM project spike | `spikes/fcm.md` | Founder | Deferred post-MVP (no hackathon action); founder acts at integration |
-| D1–D13 | Decisions + accounts + legal | `decisions.md` | Founder (+ counsel for law) | Steers recorded 5 Nov 2026; verdicts open — needs founder |
+| D1–D13 | Decisions + accounts + legal | `decisions.md` | Founder (+ counsel for law) | Verdicts recorded 5 Nov 2026 (D12 engagement is the only pending action) |
 | G1 | Auth spike answered in writing | `spikes/auth.md` § Answer | — | Done 5 Nov 2026 |
-| G2 | Threat model sketched | `threat-model.md` | Cosmo (draft) + Founder (review) | Review notes recorded 5 Nov 2026; sign-off open |
+| G2 | Threat model sketched | `threat-model.md` | Cosmo (draft) + Founder (review) | Signed off 5 Nov 2026 |
 
 ## How to close an item
 

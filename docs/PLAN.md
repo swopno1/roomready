@@ -555,8 +555,8 @@ Token policy (verified reality + Phase-2A changes):
 > **S1 addendum (5 Nov 2026):** the earlier "S1 correction" cited the
 > wrong repo (`MemberRole` belongs to the ChatBot platform). The
 > hospitality roles below match Suite `UserRole` 1:1, and S2 closes the
-> mapping (Supervisor = role flag TBD in 2A; MAINTENANCE gap needs a
-> founder call at contract freeze).
+> mapping (Supervisor = role flag TBD in 2A; MAINTENANCE decided 5 Nov
+> 2026 as MANAGER-delegated HOUSEKEEPING, no new role).
 
 Roles come from the Suite (mapping TBD in S2). RoomReady
 uses the subset below; unlisted roles have **no access** to RoomReady.

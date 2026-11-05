@@ -78,8 +78,8 @@ vs a Next.js route wrapping the shell. Record the choice + why.
   evidence breaks — see verification 2) and (b) adds drift control
   (CI check or versioned copy step from this repo into
   `public/housekeeping`).
-- Date: 5 Nov 2026 (recommendation; integration-time choice needs
-  founder ack alongside D3).
+- Date: 5 Nov 2026 — **acked by founder alongside D3** (standalone
+  MVP, Option A at integration).
 
 ## Done when
 
