@@ -17,6 +17,17 @@ server key, and the sender ID.
 3. Sender ID: record here once the project exists.
 4. Confirm the Phase-2/3 use is Android-only (FCM); web push stays deferred.
 
+## MVP scope note (5 Nov 2026, Muse Code)
+
+No founder action needed for the hackathon: the MVP has no push (no
+backend, no device tokens). Verified: no Firebase/FCM in the Suite
+(`travel-scaffold`), the ChatBot platform (`vivereply`), or Concierge —
+so this is genuinely greenfield. At integration time the steer stands:
+new `roomready` Firebase project (audience/quota isolation), server key
+in the founder's password manager (+ Modal secrets at 2B),
+Android-only; web push stays deferred (no web-push infra exists
+anywhere today).
+
 ## Answer
 
 - Date:

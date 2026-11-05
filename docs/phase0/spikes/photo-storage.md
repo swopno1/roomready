@@ -32,13 +32,28 @@ bucket, access rules, URL signing).
 
 ## Answer
 
-- Date:
-- Backend:
-- Bucket + rules:
-- Upload/read flow:
-- Open items (if any):
+- Date: 5 Nov 2026 (Muse Code, read-only, `travel-scaffold`)
+- Backend: **R2 (S3-compatible) — NOT Supabase Storage.** Zero Supabase
+  imports in Suite src; Supabase is hosted Postgres only. Precedent:
+  private receipts bucket + keys-only in DB + 5-min presigned URLs +
+  per-view audit + `.data/` dev fallback
+  (`src/lib/payments/banglaqr/receipt-storage.ts`,
+  `src/lib/storage/r2.ts:43-81` — `uploadToR2`,
+  `getPresignedR2Url` default 300s, `deleteFromR2`).
+- Bucket + rules: new **private** bucket mirroring the `R2_RECEIPTS_*`
+  env pattern (account id + key-scoped credentials + bucket name); no
+  public domain (R2 public access is bucket-wide); read via
+  short-lived presigned URLs minted by the Suite API (integration
+  time; Integration Service fronts in Phase B).
+- Upload/read flow: **MVP: local-only** (the ticket form has no photo
+  input today; add a local blob at most if the demo story demands it
+  — default no). Integration: client → Suite API → bucket (keeps auth
+  + the virus-scan hook in one Phase-2B place).
+- Open items (if any): virus-scan provider choice (ClamAV vs provider
+  scan — 2B); 24-month deletion = application delete (exact keys
+  known) with a lifecycle rule as backstop (confirm at contract freeze).
 
 ## Done when
 
-- [ ] All 5 questions answered with evidence paths
-- [ ] `PLAN.md` §14.1 photo row updated from "to confirm" to decided
+- [x] All 5 questions answered with evidence paths
+- [x] `PLAN.md` §14.1 photo row updated from "to confirm" to decided

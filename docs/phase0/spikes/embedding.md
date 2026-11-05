@@ -44,15 +44,44 @@ vs a Next.js route wrapping the shell. Record the choice + why.
    already used anywhere (precedent).
 3. How auth middleware is applied to routes (matters for Option B).
 
+## Suite verification (5 Nov 2026, Muse Code, read-only, `travel-scaffold`)
+
+1. **Host app:** the Suite Next.js 16.4.1 app itself (`package.json`).
+   No separate property-facing app — one deployment (VPS + Docker in
+   production, Vercel demo-only per `docs/DEPLOYMENT.md`).
+2. **Header support + precedent:** `next.config.ts:58-59` implements
+   `headers()` returning the global `securityHeaders()` on `/(.*)` —
+   global-only, no per-path precedent. Current headers
+   (`src/lib/security/headers.ts`): HSTS, `X-Frame-Options: DENY`, CSP
+   = `frame-ancestors 'none'` only (no script restrictions — the MVP's
+   inline SW registration is unaffected today), `nosniff`,
+   strict `Referrer-Policy`, and **`Permissions-Policy: camera=()` —
+   camera is disabled globally, which blocks ticket photo capture on
+   any embedded origin until carved out.**
+3. **Auth middleware:** `src/middleware.ts` validates the better-auth
+   session server-side, but `matcher` covers ONLY `/admin/*` and
+   `/api/admin/*` (`runtime: "nodejs"`). A `/housekeeping` route and any
+   `/api/v1/*` endpoints get NO outer auth layer — each must enforce
+   auth itself (Phase-2A gotcha for either option).
+
 ## Decision
 
-*(Founder picks; Muse Code supplies the verification above.)*
-
-- Choice: A / B
-- Why:
-- Date:
+- Choice: **neither for the MVP — standalone as-is; Option A at
+  integration time** (Muse Code recommendation; founder confirms the
+  integration-time half).
+- Why: the hackathon MVP ships as the current static PWA (own repo,
+  zero Suite dependency) — embedding solves nothing on film and risks
+  the build. At integration, Option A wins: zero Suite code, natural
+  SW scope (`/housekeeping/sw.js` → `/housekeeping/*`), same-origin
+  session cookie, rollback with the Suite deploy — PROVIDED Phase 2A
+  (a) scopes a camera allowlist to `/housekeeping/*` (else photo
+  evidence breaks — see verification 2) and (b) adds drift control
+  (CI check or versioned copy step from this repo into
+  `public/housekeeping`).
+- Date: 5 Nov 2026 (recommendation; integration-time choice needs
+  founder ack alongside D3).
 
 ## Done when
 
-- [ ] Suite verification points 1–3 answered with evidence paths
-- [ ] Choice + why recorded above and reflected in `PLAN.md` §4.5
+- [x] Suite verification points 1–3 answered with evidence paths
+- [x] Choice + why recorded above and reflected in `PLAN.md` §4.5

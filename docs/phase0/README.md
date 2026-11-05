@@ -11,14 +11,14 @@ Phase 2 are made; the 🔒 security gate passes.
 
 | # | Item | File | Owner | Status |
 |---|---|---|---|---|
-| S1 | Suite auth spike | `spikes/auth.md` | Muse Code (inspect) + Cosmo (record) | Answered 5 Nov 2026 |
-| S2 | Suite API inventory | `spikes/api-inventory.md` | Muse Code | Open — ready, Suite repo available |
-| S3 | Embedding mechanism spike | `spikes/embedding.md` | Muse Code + Founder | Open — ready |
-| S4 | Photo storage spike | `spikes/photo-storage.md` | Muse Code | Open — ready |
-| S5 | FCM project spike | `spikes/fcm.md` | Founder | Open — needs founder |
-| D1–D13 | Decisions + accounts + legal | `decisions.md` | Founder (+ counsel for law) | Open — needs founder |
+| S1 | Suite auth spike | `spikes/auth.md` | Muse Code (inspect) + Cosmo (record) | Answered 5 Nov 2026 + repo-identity addendum 5 Nov 2026 |
+| S2 | Suite API inventory | `spikes/api-inventory.md` | Muse Code | Answered 5 Nov 2026 |
+| S3 | Embedding mechanism spike | `spikes/embedding.md` | Muse Code + Founder | Answered 5 Nov 2026 (MVP standalone; integration-time A needs founder ack) |
+| S4 | Photo storage spike | `spikes/photo-storage.md` | Muse Code | Answered 5 Nov 2026 |
+| S5 | FCM project spike | `spikes/fcm.md` | Founder | Deferred post-MVP (no hackathon action); founder acts at integration |
+| D1–D13 | Decisions + accounts + legal | `decisions.md` | Founder (+ counsel for law) | Steers recorded 5 Nov 2026; verdicts open — needs founder |
 | G1 | Auth spike answered in writing | `spikes/auth.md` § Answer | — | Done 5 Nov 2026 |
-| G2 | Threat model sketched | `threat-model.md` | Cosmo (draft) + Founder (review) | Draft skeleton ready for review |
+| G2 | Threat model sketched | `threat-model.md` | Cosmo (draft) + Founder (review) | Review notes recorded 5 Nov 2026; sign-off open |
 
 ## How to close an item
 
@@ -31,10 +31,11 @@ Phase 2 are made; the 🔒 security gate passes.
 
 ## Key facts for this phase
 
-- Suite repo is the sibling monorepo `../vivereply` (turborepo: `apps/`,
-  `packages/`, `docs/`). Inspect read-only.
-- Suite auth starting point: `../vivereply/docs/13-AUTH-SECURITY-MULTITENANCY.md`
-  plus the actual auth code under `../vivereply/apps/` and
-  `../vivereply/packages/`.
+- Suite repo is the sibling **`travel-scaffold`** (`client/demo1`
+  branch family). Inspect read-only. (Corrected 5 Nov 2026:
+  `../vivereply` is the ChatBot/AI platform, not the Suite — see S1
+  addendum. Older references to `../vivereply` as the Suite are stale.)
+- Suite auth starting point: `travel-scaffold/src/lib/auth.ts`
+  (better-auth) plus `travel-scaffold/prisma/schema.prisma`.
 - No secrets in this directory, ever. Record key *holders* and *locations*
   (e.g. "FCM server key in founder's password manager"), never values.

@@ -20,21 +20,26 @@ assumptions.
 **Exit:** every spike has a written answer in `PLAN.md` or here; all
 founder decisions in §13 that gate Phase 2 are made.
 
-- [x] **Spike: Suite auth — verify, don't assume.** → Answered 5 Nov 2026:
-  NextAuth Credentials + JWT (user id only, 30d default); validation via new
-  Suite `POST /api/v1/auth/introspect` (service key, ~60s cache); `maxAge` →
-  24h + `tokenVersion` revoke in Phase 2A; no 2FA / no sessions today (both
-  become 2A build work). Full answer in `docs/phase0/spikes/auth.md`; §7
-  revised. **Owner:** Muse Code (read-only inspection) + Cosmo (record)
-- [ ] **Spike: Suite API inventory.** List what the Suite already exposes
-  for rooms, units, staff, roles, booking states. Map each §4.3 endpoint to
-  "exists / extend / build new". **Owner:** Muse Code
-- [ ] **Spike: embedding mechanism.** Pick Phase-A embedding: static PWA
-  files under `public/housekeeping` vs a Next.js route wrapping the shell.
-  Record the choice + why. **Owner:** Muse Code + Founder
-- [ ] **Spike: photo storage.** Pick the backend for photo evidence
-  (Supabase Storage presumed — confirm bucket, access rules, URL signing).
-  **Owner:** Muse Code
+- [x] **Spike: Suite auth — verify, don't assume.** → Answered 5 Nov 2026,
+  corrected by addendum same day (first answer cited the ChatBot repo):
+  Suite is `travel-scaffold`, better-auth DB sessions (7d default);
+  validation via new Suite `POST /api/v1/auth/introspect` (service key,
+  ~60s cache); `expiresIn` → 24h in Phase 2A; revoke = delete rows;
+  TOTP 2FA already ships (OWNER-required). Full answer + addendum in
+  `docs/phase0/spikes/auth.md`; §7 revised. **Owner:** Muse Code (read-only inspection) + Cosmo (record)
+- [x] **Spike: Suite API inventory.** → Answered 5 Nov 2026: Suite is
+  `travel-scaffold` (not `../vivereply`); housekeeping machine, roles 1:1,
+  booking triggers exist server-side; §4.3 = 4× Extend + 5× Build new;
+  role mapping closed except MAINTENANCE gap. Full answer in
+  `docs/phase0/spikes/api-inventory.md`. **Owner:** Muse Code
+- [x] **Spike: embedding mechanism.** → Answered 5 Nov 2026: MVP ships
+  standalone (no embed); Option A (`public/housekeeping`) recommended
+  for integration time with camera-Policy carve-out + drift control.
+  Full answer in `docs/phase0/spikes/embedding.md`.
+  **Owner:** Muse Code + Founder
+- [x] **Spike: photo storage.** → Answered 5 Nov 2026: R2 private bucket
+  (not Supabase Storage — zero Supabase usage in Suite); MVP local-only.
+  Full answer in `docs/phase0/spikes/photo-storage.md`. **Owner:** Muse Code
 - [ ] **Spike: FCM project.** Confirm the Firebase project for push
   (new vs existing), who holds the server key, and the sender ID.
   **Owner:** Founder
@@ -112,9 +117,10 @@ week on the PWA with zero demo data.
 - [ ] Build the §4.3 API endpoints (rooms, status, templates, tickets,
   sync, assignments, report). All nine, versioned `/api/v1`.
 - [ ] Auth introspection endpoint `POST /api/v1/auth/introspect` for the
-  Integration Service (from S1: validates session token, returns
-  user/workspace/role/expiry; service key; `tokenVersion` check) +
-  `session.maxAge` → 24h + `tokenVersion` on `User`.
+  Integration Service (from S1 addendum: validates the better-auth
+  session token via `auth.api.getSession()`, returns user/role/expiry;
+  service key; revoke = delete `Session` rows, no `tokenVersion`) +
+  `session.expiresIn` → 24h.
 - [ ] **Check-in guard:** block check-in until room is Ready/Inspected
   (§4.2 step 4). Suite-repo change — RoomReady cannot do this alone.
 - [ ] Checkout → turnover job trigger (room → Dirty, checklist reset,
@@ -127,9 +133,9 @@ week on the PWA with zero demo data.
   age, failed-operation counts (§3.3, §10.3).
 - [ ] Device list + revoke UI in Suite admin; lost/stolen device procedure
   doc (§7.2).
-- [ ] Build 2FA enforcement for Owner/Manager at Suite login — S1 found
-  no 2FA exists today (credentials-only), so this is build work, not
-  verification (§7.4).
+- [ ] 2FA for Owner/Manager at Suite login — S1 addendum: TOTP already
+  ships (OWNERs always required); only set the per-user flag for
+  Managers at pilot onboarding, no build work (§7.4).
 - [ ] Property setup wizard: import units → import staff → pick templates
   → assign on-duty staff (§4.6).
 - [ ] Photo storage backend (from Phase-0 spike) wired to ticket/checklist

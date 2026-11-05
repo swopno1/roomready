@@ -283,9 +283,13 @@ is the source of truth; RoomReady is the offline edge that feeds it.
 
 ### 4.3 API contract (draft — to freeze in Phase 2)
 
-**Status: none of these endpoints exist in the Suite today.** The contract
-below is proposed; all nine endpoints must be built in the Suite repo
-(or fronted by the Integration Service) during Phase 2.
+**Status (S2, 5 Nov 2026): the REST surface is new, but the Suite
+already owns the underlying reads and actions** — room/housekeeping
+queries, the permission-gated status machine, roles, and booking states
+all exist server-side (mostly behind admin pages + Server Actions).
+Four endpoints Extend existing logic, five are Build-new (see S2
+verdicts). All nine REST shapes land in the Suite repo (or fronted by
+the Integration Service) during Phase 2.
 
 Base: `https://<property>.vivereply.com/api/v1` (embedded) or
 `https://suite.vivereply.com/api/v1` (standalone). Auth: §7.
@@ -317,9 +321,12 @@ Events (Suite → RoomReady, via webhook or SSE when online):
 | Staff roles (Owner, Manager, Front Desk, Housekeeping, …) | Role mapping (§7.3) |
 | Folio / cash-shift / night-audit | Out of scope — never touched |
 
-> **S1 correction (5 Nov 2026):** the "Staff roles" row above was marked
-> verified but is not — actual Suite roles are `MemberRole = OWNER /
-> ADMIN / AGENT / VIEWER`. The Suite→RoomReady role mapping is TBD in S2.
+> **S1 addendum (5 Nov 2026):** the earlier "S1 correction" cited the
+> wrong repo (`../vivereply` is the ChatBot platform). The "Staff roles"
+> row was right all along: Suite `UserRole` (`travel-scaffold`
+> `prisma/schema.prisma`) is the hospitality list, and the
+> Suite→RoomReady mapping is closed in S2 (1:1 except the MAINTENANCE
+> gap, which needs a founder call at contract freeze).
 
 ### 4.5 Deployment topology (two phases)
 
@@ -478,15 +485,19 @@ Suite, it goes on the Suite roadmap, not here.
 RoomReady does not run its own identity system. The Suite is the identity
 provider; RoomReady is a client of it.
 
-> **Verified 5 Nov 2026 (Phase-0 spike S1 — see
-> `docs/phase0/spikes/auth.md`).** The Suite runs NextAuth (v4)
-> Credentials + JWT strategy (`apps/dashboard/src/lib/auth.ts`):
-> email + scrypt password login, JWE-encrypted session cookie holding
-> only the user id, 30-day default expiry (no `maxAge` configured),
-> per-route enforcement via `withWorkspace`, no 2FA, no server-side
-> session list. §7.1/§7.2/§7.4 below are revised to this reality; the
-> 15-min/7-day token model originally written here is deferred to
-> Phase B OAuth. Do not revert to the unverified design.
+> **Verified 5 Nov 2026 (Phase-0 spike S1 + addendum — see
+> `docs/phase0/spikes/auth.md`).** The Suite (`travel-scaffold`) runs
+> better-auth with DB-backed opaque sessions (`src/lib/auth.ts`):
+> invitation-only email + password login, signed
+> `better-auth.session_token` cookie holding a DB lookup token, 7-day
+> default expiry (no `expiresIn` override), hospitality `UserRole` in
+> the DB, TOTP 2FA with OWNERs always required, server-side session
+> list with revoke-by-delete, middleware enforcement on
+> `/admin/*` + `/api/admin/*`. (An earlier revision described
+> `../vivereply` NextAuth auth — that is the ChatBot platform, not the
+> Suite; superseded by the S1 addendum.) §7.1/§7.2/§7.4 below are
+> revised to this reality; the 15-min/7-day token model originally
+> written here is deferred to Phase B OAuth.
 
 ### 7.1 Authentication (how staff sign in)
 
@@ -498,19 +509,20 @@ provider; RoomReady is a client of it.
 
 Token policy (verified reality + Phase-2A changes):
 
-- **Suite session (Phase A):** NextAuth session cookie, user id only.
-  Scope (workspace/property) and role are resolved server-side per
-  request, never carried in the token.
-- **Lifetime:** 30 days today (NextAuth default); Phase 2A sets
-  `session.maxAge` to **24 hours** (one line, per founder decision) to
-  bound the stolen-token window.
+- **Suite session (Phase A):** better-auth session cookie, opaque DB
+  token. User id, role, and scope live in the DB and are resolved
+  server-side per request, never carried in the token.
+- **Lifetime:** 7 days today (better-auth default); Phase 2A sets
+  `session.expiresIn` to **24 hours** (one line, per founder decision)
+  to bound the stolen-token window.
 - **Second-service validation:** introspection, not local verification.
   The Integration Service POSTs the client's session token to Suite
   `POST /api/v1/auth/introspect` (new Phase-2A endpoint, service key,
   ~60s result cache) and receives
-  `{ userId, workspaceId, role, expiresAt }`. `NEXTAUTH_SECRET` is never
-  shared out of the Suite. (Direct Python verification was rejected in
-  S1: the tokens are JWE-encrypted and carry no scope/role.)
+  `{ userId, role, expiresAt }` via `auth.api.getSession()`. No Suite
+  secret is ever shared out. (Direct Python verification is impossible:
+  the tokens are opaque DB lookups. The service-key leg follows the
+  shipped Concierge→Suite shared-secret precedent.)
 - **Phase B (deferred):** the short-lived access (15 min) + rotating
   refresh (7 day) + 30-day absolute model moves to the standalone
   OAuth + PKCE design. Not built in Phase 2.
@@ -522,30 +534,29 @@ Token policy (verified reality + Phase-2A changes):
 
 ### 7.2 Device trust
 
-> None of this exists in the Suite today (S1: JWT strategy, no Session
-> model) — all of it is Phase-2A build work, not verification.
+> Partially exists (S1 addendum): Suite sessions are DB rows with
+> revoke-by-delete today; the device list UI + `device_id` binding are
+> Phase-2A build work.
 
 - Each device gets a `device_id` on first login (stored server-side per user).
 - Owners/managers can list and revoke devices from Suite admin.
 - A revoked device stops syncing immediately; its local data is wiped on
   next launch (or next sync attempt, whichever comes first).
-- Simple revocation: a `tokenVersion` counter on `User`, checked by the
-  introspection endpoint — password change or admin revoke bumps it and
-  outstanding tokens fail validation. (No full DB-session migration needed.)
+- Simple revocation: delete the `Session` rows (per-device via
+  `userAgent`, per-user via `userId`) — no `tokenVersion` counter
+  needed. Open for 2A: confirm password-reset revocation behavior.
 - Lost/stolen device procedure: revoke from Suite admin → tokens dead →
   local data unreadable without the app's encrypted store (§8.3).
-  Until 2A ships, the stolen-token window equals token lifetime (30d now,
-  24h after the `maxAge` change).
+  Until 2A ships, the stolen-token window equals token lifetime (7d now,
+  24h after the `expiresIn` change).
 
 ### 7.3 Authorization — role matrix
 
-> **S1 correction (5 Nov 2026):** the Suite's actual roles are
-> `MemberRole = OWNER / ADMIN / AGENT / VIEWER`
-> (`packages/db/prisma/schema.prisma`) — chat-workspace roles, not the
-> hospitality list previously claimed here as "verified". The matrix below
-> is the RoomReady-side target; S2 must define the Suite→RoomReady role
-> mapping (or new Suite roles) before sign-off. Do not treat this matrix
-> as agreed with the Suite until S2 lands.
+> **S1 addendum (5 Nov 2026):** the earlier "S1 correction" cited the
+> wrong repo (`MemberRole` belongs to the ChatBot platform). The
+> hospitality roles below match Suite `UserRole` 1:1, and S2 closes the
+> mapping (Supervisor = role flag TBD in 2A; MAINTENANCE gap needs a
+> founder call at contract freeze).
 
 Roles come from the Suite (mapping TBD in S2). RoomReady
 uses the subset below; unlisted roles have **no access** to RoomReady.
@@ -576,10 +587,12 @@ who/when/device/property.
 
 ### 7.4 Two-factor authentication
 
-> S1: no 2FA exists in the Suite today (credentials-only login). All of
-> this is Phase-2A build work, not verification.
+> S1 addendum: TOTP 2FA ships in the Suite today (better-auth plugin;
+> OWNERs always required via `requireMfa`, per-user forcing by OWNER).
+> No 2A build work — RoomReady inherits it.
 
-- Owners and Managers: 2FA required (to be built at Suite login in 2A).
+- Owners: 2FA required (enforced today). Managers: required via the
+  per-user flag at pilot onboarding (no code change).
 - Other roles: 2FA optional, recommended for supervisors.
 - 2FA is enforced at Suite login; RoomReady inherits it (no separate 2FA).
 
@@ -738,9 +751,10 @@ No real property data in `dev`. Ever.
 
 ### 10.2 Hosting & CI/CD
 
-- **PWA shell:** Vercel (same project as the Suite in Phase A; separate
-  project in Phase B). Immutable deploys, instant rollback, preview URL per
-  PR.
+- **PWA shell:** MVP standalone in this repo. At integration, Phase A
+  ships with the Suite deployment (BDIX VPS + Docker; Vercel is
+  demo-only per Suite `docs/DEPLOYMENT.md`) — rollback is the previous
+  container image. Separate origin at Phase B.
 - **API + DB:** the Suite's existing deployment (Next.js + Supabase
   Postgres + Prisma).
 - **Integration Service (Python/FastAPI):** serverless on Modal
@@ -870,12 +884,12 @@ Nothing here is aspirational — it is the checklist the launch runs on.
 
 | Component | Lives at | Talks to | Auth | Notes |
 |---|---|---|---|---|
-| PWA shell | Vercel — same project as the Suite (Phase A); own project (Phase B) | Integration Service + Suite API | Shared session cookie (A) / Bearer token (B) | Immutable deploys, instant rollback |
+| PWA shell | MVP: this repo standalone. Integration Phase A: same deployment as the Suite (BDIX VPS + Docker — Vercel is demo-only per Suite `docs/DEPLOYMENT.md`); own origin at Phase B | Integration Service + Suite API | Shared session cookie (A) / Bearer [REDACTED] (B) | Prod rollback = previous container image, not Vercel rollback |
 | Integration Service (Python/FastAPI) | Modal Starter, free tier (D1 decided 5 Nov 2026) | **Suite API only** — never the Suite DB directly | Validates Suite-issued tokens | Own small Postgres (sync ledger) + Modal Cron (Redis only if outgrown) |
 | Suite API + DB | Suite deployment (Next.js + Supabase Postgres + Prisma) | — | — | Source of truth; PITR backups on |
 | Android app | Play Store | Integration Service (single backend, both phases) | OAuth + PKCE, Keystore tokens | Staged rollout, halt criteria (§6.2) |
 | Push (FCM) | Firebase project (§13 spike) | Integration Service → FCM → devices | FCM server key (host secret) | Assignment, urgent ticket, inspection failed |
-| Photo storage | Supabase Storage (to confirm, Phase-0 spike) | Suite API / Integration Service | Signed URLs, short-lived | Virus scan before serving (§2B) |
+| Photo storage | R2 private bucket (decided S4, 5 Nov 2026 — Supabase is Postgres-only in the Suite); MVP local-only | Suite API / Integration Service | Presigned URLs, ~5 min (receipts precedent) | Virus scan before serving (§2B) |
 | Domains | `*.vivereply.com` property subdomains; `suite.vivereply.com`; Integration Service on default Modal URL (unbranded accepted per D1 — branded `sync.vivereply.com` needs Modal Team, revisit post-revenue) | — | TLS 1.2+ everywhere, HSTS | DNS cutover is a runbook step (§14.2) |
 
 **Wiring rules (non-negotiable):**

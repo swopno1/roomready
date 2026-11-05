@@ -112,3 +112,61 @@ workspace → property mapping, before the §7.3 matrix can be signed off.
 - [x] All 5 questions answered above with evidence paths
 - [x] `PLAN.md` §7 updated (revised to verified reality — see §7.1/§7.2/§7.4)
 - [x] G1 (auth spike in writing) ticked in `TO-DO.md`
+
+## Addendum — repo-identity correction (5 Nov 2026, Muse Code, read-only)
+
+**The 5 Nov "Answer" above investigated the wrong repo.** `../vivereply`
+(turborepo: `apps/dashboard|web|widget`; models `Workspace`,
+`Conversation`, `AiAgent`, `Knowledge*`, `Store`, `Cart`) is the
+**ChatBot/AI platform** — it has no rooms, bookings, or housekeeping. The
+**Suite is `travel-scaffold`** (`client/demo1` branch family). All five
+answers above describe ChatBot-dashboard auth and must NOT gate Suite
+integration work. They are preserved for history; the corrected Suite
+answers follow. Verified on both `client/demo1` and `client/demo11`
+(`git show client/demo1:<path>`).
+
+**Suite auth reality (all paths in `travel-scaffold`):**
+
+1. **Session mechanism: better-auth 1.7.14, DB-backed opaque sessions**
+   (`src/lib/auth.ts`). Email + password, invitation-only
+   (`disableSignUp: true`). Cookie `better-auth.session_token` (prefix +
+   name confirmed in installed package source
+   `node_modules/.pnpm/better-auth@1.7.14_*/better-auth/dist/cookies/index.mjs:49,266`),
+   HMAC-signed with `BETTER_AUTH_SECRET`, value = the `Session.token` DB
+   lookup. Outer layer: `src/middleware.ts` validates the session
+   server-side for `/admin/*` + `/api/admin/*` only
+   (`matcher`, `runtime: "nodejs"`).
+2. **Token contents: opaque random token — user id, role, scope all live
+   in the DB** (`Session` → `User`, `User.role: UserRole`,
+   `prisma/schema.prisma`). **Expiry is 7 days** (better-auth default
+   `sec("7d")`, same package source; no `expiresIn` override in
+   `src/lib/auth.ts`). Roles are the hospitality list
+   (`OWNER, MANAGER, STAFF, FRONT_DESK, HOUSEKEEPING, KITCHEN,
+   STOREKEEPER, ACCOUNTANT, HR, AUDITOR`) — so §4.4's original claim
+   that this spike "corrected" was right all along; the `MemberRole`
+   correction was wrong-repo data.
+3. **Second-service validation: YES, via introspection (recommendation
+   survives, reason changes).** A Python service cannot verify opaque DB
+   tokens offline, and no secret must be shared either. Suite adds
+   `POST /api/v1/auth/introspect` (Phase 2A): service key in, session
+   token in, `{ userId, role, expiresAt }` out via
+   `auth.api.getSession()`. Precedent for the service-key leg already
+   ships: Concierge→Suite shared-secret Bearer
+   (`travel-scaffold/src/lib/concierge-auth.ts`,
+   `vivereply-concierge/lib/suite.ts:39-57`).
+4. **Session list with revoke: YES — S1's "no" is reversed.** `Session`
+   rows carry `token, expiresAt, ipAddress, userAgent, userId`; revoke
+   = delete rows (per-device via `userAgent`, per-user via `userId`).
+   Consequence: the proposed `tokenVersion` counter is unnecessary —
+   drop it. Open for 2A: confirm password-reset session-revocation
+   behavior (not verified here).
+5. **2FA: EXISTS — S1's "no" is reversed.** TOTP plugin
+   (`twoFactor({ issuer: "ResortAdmin" })`, `auth.ts:117-120`); OWNERs
+   are always required (`requireMfa`, `src/lib/auth-helpers.ts`),
+   per-user forcing by OWNER (`twoFactorRequired`, `UsersPanel.tsx`);
+   enrol UI at `src/app/admin/setup-2fa/`; sign-in + TOTP rate-limited
+   and audited (`auth.ts:70-116`).
+
+**MVP scope note:** none of the above gates the hackathon MVP, which has
+no auth at all (no PII, no backend — correct). This addendum gates Suite
+integration (post-MVP) only.
