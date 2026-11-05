@@ -56,7 +56,8 @@ changes accompany this document. &nbsp;·&nbsp; <a href="../">Back to the app</a
 <nav class="toc"><div class="wrap"><a href="#1-product-definition">Product</a> <a href="#2-platforms">Platforms</a> <a href="#3-architecture">Architecture</a> <a href="#4-wiring-with-vivereply-suite">Suite wiring</a> <a href="#5-proposed-features-phased">Features</a> <a href="#6-android-app-plan-capacitor">Android</a> <a href="#7-authentication--authorization-with-vivereply-suite">Auth</a> <a href="#8-security--standards-measurements-policy">Security</a> <a href="#9-legal-pages">Legal</a> <a href="#10-production-deployment">Deployment</a> <a href="#11-testing--qa">Testing</a> <a href="#12-roadmap--milestones">Roadmap</a> <a href="#13-decisions-needed-from-the-founder">Decisions</a></div></nav>
 <main>
 <h1 id="roomready-production-plan">RoomReady — Production Plan</h1>
-<p><strong>Version:</strong> 1.0 — draft for founder review
+<p><strong>Version:</strong> 1.1 — draft for founder review (updated 5 Nov 2026: Android path
+is native Kotlin + Python FastAPI, per founder preference)
 <strong>Date:</strong> 5 November 2026
 <strong>Status:</strong> Plan only. No app code changes accompany this document.
 <strong>Repo:</strong> <a href="https://github.com/swopno1/roomready">swopno1/roomready</a>
@@ -134,8 +135,9 @@ every room.</p>
 </ul>
 <hr />
 <h2 id="2-platforms">2. Platforms</h2>
-<p>One codebase, two surfaces. The PWA is the product; Android is the same
-product in a store shell.</p>
+<p>Two clients, one contract. The PWA is the web surface; native Android is
+the store surface. Both implement the same API contract and sync protocol
+(§3.3), and both are backed by the same Python integration service (§3.1).</p>
 <h3 id="21-pwa-web-the-primary-surface-already-built-hackyard-mvp">2.1 PWA (web) — the primary surface, already built (Hackyard MVP)</h3>
 <ul>
 <li>Vanilla HTML/CSS/JS, zero dependencies, zero network calls.</li>
@@ -144,11 +146,36 @@ product in a store shell.</p>
 <li>Runs on any modern browser; installable on Android and desktop from the
   browser. This is the surface staff use on shared tablets and phones.</li>
 </ul>
-<h3 id="22-android-app-capacitor-wrapper-recommended">2.2 Android app — Capacitor wrapper (recommended)</h3>
-<p><strong>Recommendation: Capacitor</strong> (capacitorjs.com) wrapping the existing PWA
-codebase. One codebase, one release train, native capabilities where the
-browser can't reach.</p>
-<p>Why Capacitor over the alternatives:</p>
+<h3 id="22-android-app-native-kotlin-python-fastapi-service-founder-preference-5-nov-2026">2.2 Android app — native Kotlin + Python FastAPI service (founder preference, 5 Nov 2026)</h3>
+<p><strong>Founder preference:</strong> native Android, with Python (or another lightweight
+stack) behind it — light, secure, reliable, and able to integrate with the
+other ViveScript products. Next.js is fine, but for this purpose the stack
+should stay lightweight.</p>
+<p>The stack, in two parts:</p>
+<p><strong>Native Android (Kotlin).</strong> Kotlin + Jetpack Compose UI, Room (encrypted
+SQLite) for the on-device store, WorkManager for background sync, Retrofit
+for the API, CameraX for photo evidence, FCM for push. No WebView: the app
+is fully native, which is what makes it fast on the low-end devices staff
+actually carry, and gives real offline behaviour (encrypted store, scheduled
+sync, camera) that a web wrapper can only approximate.</p>
+<p><strong>Python Integration Service (FastAPI).</strong> A small, single-container Python
+service that owns the server side of the product: the sync endpoint (outbox
+replay, idempotency, conflict resolution), push delivery, photo uploads and
+background jobs. Why Python here:</p>
+<ul>
+<li><strong>Light:</strong> one container, ~256–512 MB RAM, no heavy runtime. FastAPI is
+  async and fast enough for a sync workload without a JVM or Node cluster.</li>
+<li><strong>Secure:</strong> Pydantic validation on every boundary, fully typed, small
+  dependency surface.</li>
+<li><strong>Reliable:</strong> typed, tested (pytest), boring in the good way — it does a
+  few jobs and does them the same way every time.</li>
+<li><strong>Integratable:</strong> this is the strategic point. The service is built as
+  the shared backbone for all ViveScript products — the same sync, push
+  and jobs layer can later serve WorkRoster, Estavo and the Chatbot, instead
+  of each product growing its own integration. One lightweight service
+  family, not one integration per product.</li>
+</ul>
+<p>Why not the alternatives:</p>
 <table>
 <thead>
 <tr>
@@ -158,39 +185,52 @@ browser can't reach.</p>
 </thead>
 <tbody>
 <tr>
-<td><strong>Capacitor (recommended)</strong></td>
-<td>Wraps the existing PWA as-is. Native plugins for SQLite (encrypted on-device DB), camera, push (FCM), background sync, secure storage. Play Store presence with a real APK/AAB. Smallest rewrite: the PWA stays the PWA.</td>
+<td><strong>Native Kotlin + FastAPI (chosen)</strong></td>
+<td>Best offline behaviour, best Play presence, lightest server, shared backbone for other products. More build effort than a wrapper — accepted deliberately.</td>
 </tr>
 <tr>
-<td>Trusted Web Activity (TWA)</td>
-<td>Lighter — the Play listing is essentially the PWA. But no SQLite, no background sync, no camera beyond the browser, and the Play experience is thinner. Fallback if Capacitor proves too heavy.</td>
+<td>Capacitor / TWA wrapper</td>
+<td>Less native work, but a WebView app with wrapper-grade offline behaviour and no shared service layer. Rejected per founder preference for native + Python.</td>
 </tr>
 <tr>
-<td>React Native / Flutter rewrite</td>
-<td>Full native power, but a complete rewrite of a working product for no user-visible gain at this stage. Revisit only if the product outgrows the web model.</td>
+<td>React Native / Flutter</td>
+<td>Cross-platform, but a second language/runtime to own, and neither is Python. Heavier than the Kotlin + FastAPI combination for this team of one.</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Founder decision (see §13):</strong> confirm Capacitor as the Android path, or
-choose TWA as the lighter first step.</p>
+<p>The PWA stays as the web surface — it is already built and working, and
+both clients implement the same contract (§4.3).</p>
 <h3 id="23-platform-principles">2.3 Platform principles</h3>
 <ul>
 <li><strong>Offline-first on both surfaces.</strong> The Android app must pass the same
   airplane-mode test as the PWA.</li>
-<li><strong>One data model, one sync engine.</strong> Web and Android share the store and
-  the sync protocol (§3.3). A fix in one ships in both.</li>
+<li><strong>One API contract, one sync protocol.</strong> The PWA and native Android
+  implement the same contract (§4.3) and the same outbox protocol (§3.3).
+  The server-side sync logic lives once, in the Python service — not
+  duplicated per client.</li>
 <li><strong>No platform-only features in Phase 2.</strong> Anything built for Android
   (photo evidence, push) must degrade gracefully on the PWA, not fork it.</li>
+<li><strong>Shared service layer.</strong> The Python Integration Service is built to be
+  reused: the same sync, push and jobs backbone can later serve WorkRoster,
+  Estavo and the Chatbot — one lightweight service family, not one
+  integration per product.</li>
 </ul>
 <hr />
 <h2 id="3-architecture">3. Architecture</h2>
 <h3 id="31-system-diagram-text">3.1 System diagram (text)</h3>
-<pre><code>Staff device (PWA / Android)
-  ├─ App shell (HTML/CSS/JS, cached by service worker)
-  ├─ Local store (IndexedDB — §3.2; localStorage in MVP)
+<pre><code>Staff device (PWA / native Android)
+  ├─ PWA shell (HTML/CSS/JS, cached by service worker)
+  │   — or — native UI (Kotlin, Jetpack Compose)
+  ├─ Local store (IndexedDB on web — §3.2; Room/SQLite on Android)
   ├─ Sync engine: outbox queue + background sync (§3.3)
   └─ Auth: Suite session / token (§7)
         │  HTTPS, only when online
+        ▼
+ViveScript Integration Service (Python, FastAPI)
+  ├─ Sync endpoint (outbox replay, idempotency, conflicts)
+  ├─ Push delivery (FCM), photo uploads, background jobs
+  └─ Validates Suite-issued tokens; fronts the Suite API
+        │
         ▼
 ViveReply Suite API  (Next.js, same deployment — §4.5)
   ├─ Rooms, units, reservations (source of truth)
@@ -222,7 +262,7 @@ Suite DB (Supabase Postgres + Prisma)
 </tr>
 <tr>
 <td>Android</td>
-<td><strong>SQLite</strong> via Capacitor SQLite plugin, SQLCipher encryption</td>
+<td><strong>Room (SQLite) + SQLCipher</strong>, Kotlin</td>
 <td>Same schema as IndexedDB, encrypted at rest (§8.3).</td>
 </tr>
 </tbody>
@@ -255,6 +295,10 @@ Suite DB (Supabase Postgres + Prisma)
   connectivity change.</li>
 <li><strong>Sync health.</strong> The app shows pending-change count; the Suite dashboard
   shows per-device last-sync time and failed-operation alerts.</li>
+<li><strong>Server side.</strong> The sync endpoint, idempotency ledger and conflict
+  resolution run in the Python Integration Service (§3.1), not in the
+  Suite app — one implementation serves the PWA, Android, and future
+  products.</li>
 </ul>
 <h3 id="34-api-style">3.4 API style</h3>
 <ul>
@@ -410,12 +454,16 @@ is the source of truth; RoomReady is the offline edge that feeds it.</p>
 <ul>
 <li><strong>Phase A — embedded module (first).</strong> RoomReady ships inside the Suite
   deployment as a <code>/housekeeping</code> route of the same Next.js app. Same
-  origin: no CORS, shared session cookie, shared auth, one deploy. This is
-  the fastest path to a pilot property.</li>
+  origin: no CORS, shared session cookie, shared auth, one deploy. The
+  Python Integration Service runs alongside from Phase 2 and owns the sync
+  endpoint, push delivery and photo uploads — the Suite app calls it, and
+  the Android app talks to it directly. This is the fastest path to a
+  pilot property.</li>
 <li><strong>Phase B — standalone (later).</strong> RoomReady PWA + Android point at the
-  Suite API from their own origin. Needs CORS allowlist, token auth
-  (Authorization Code + PKCE for Android, §7.1), and a public API stability
-  commitment. Only after Phase A proves the sync engine in production.</li>
+  Integration Service as their single backend; the service fronts the
+  Suite API. Needs CORS allowlist, token auth (Authorization Code + PKCE
+  for Android, §7.1), and a public API stability commitment. Only after
+  Phase A proves the sync engine in production.</li>
 </ul>
 <h3 id="46-migration-path-from-the-hackyard-mvp">4.6 Migration path from the Hackyard MVP</h3>
 <ol>
@@ -561,7 +609,7 @@ is the source of truth; RoomReady is the offline edge that feeds it.</p>
 </thead>
 <tbody>
 <tr>
-<td>Android app (Capacitor, Play Store)</td>
+<td>Android app (native Kotlin, Play Store)</td>
 <td>P0</td>
 <td>§6</td>
 </tr>
@@ -617,21 +665,25 @@ is the source of truth; RoomReady is the offline edge that feeds it.</p>
 messaging, housekeeping payroll, procurement. If a request belongs to the
 Suite, it goes on the Suite roadmap, not here.</p>
 <hr />
-<h2 id="6-android-app-plan-capacitor">6. Android app plan (Capacitor)</h2>
-<h3 id="61-build">6.1 Build</h3>
+<h2 id="6-android-app-plan-native-kotlin">6. Android app plan (native Kotlin)</h2>
+<h3 id="61-build-native-kotlin">6.1 Build (native Kotlin)</h3>
 <ul>
-<li><strong>Stack:</strong> the existing PWA codebase + <code>@capacitor/core</code>, <code>@capacitor/cli</code>,
-  <code>@capacitor/android</code>. No framework rewrite.</li>
-<li><strong>Plugins:</strong> Storage/SQLite (<code>@capacitor-community/sqlite</code>, SQLCipher),
-  Camera, PushNotifications (FCM), Network, BackgroundSync/WorkManager,
-  App (deep links), Haptics, Secure Storage
-  (<code>@capacitor/secure-storage-plugin</code> / EncryptedSharedPreferences).</li>
-<li><strong>Build:</strong> Android Studio + Gradle, <code>npx cap sync</code> after each web build.
-  <code>minSdk 26</code> (Android 8), <code>targetSdk</code> = latest stable at release.</li>
+<li><strong>Stack:</strong> Kotlin, Jetpack Compose (UI), MVVM + Hilt (DI), Retrofit +
+  OkHttp (network), Room + SQLCipher (encrypted on-device DB), WorkManager
+  (background sync), DataStore (preferences), CameraX (photo evidence),
+  FCM (push). No WebView — the app is fully native.</li>
+<li><strong>Modules:</strong> <code>app</code> (UI + navigation), <code>data</code> (Room DAOs + Retrofit API),
+  <code>sync</code> (outbox + WorkManager + conflict handling), <code>core</code> (auth, logging).
+  The <code>sync</code> module implements the same outbox protocol as the PWA (§3.3).</li>
+<li><strong>Build:</strong> Android Studio + Gradle (Kotlin DSL). <code>minSdk 26</code>
+  (Android 8), <code>targetSdk</code> = latest stable at release.</li>
 <li><strong>Signing:</strong> Play App Signing, upload key stored in the founder's password
   manager + CI secret. Never in the repo.</li>
 <li><strong>Versioning:</strong> semver (<code>1.0.0</code>) + auto-incrementing <code>versionCode</code>.
   versionCode is the source of truth for Play ordering.</li>
+<li><strong>Python service (companion):</strong> FastAPI + Pydantic + SQLAlchemy,
+  packaged as one Docker container (§10.2). It owns the sync endpoint,
+  push, photo uploads and background jobs — see §3.1.</li>
 </ul>
 <h3 id="62-play-store-listing">6.2 Play Store listing</h3>
 <ul>
@@ -682,16 +734,19 @@ Suite, it goes on the Suite roadmap, not here.</p>
 <h3 id="64-offline-on-android">6.4 Offline on Android</h3>
 <ul>
 <li>Same airplane-mode test as the PWA, run on a real device before every
-  release. SQLite holds the store; WorkManager replays the outbox.</li>
+  release. Room (encrypted SQLite) holds the store; WorkManager replays
+  the outbox, including on connectivity change and on a periodic schedule.</li>
 <li>Photos captured offline are stored on-device and uploaded on sync with
   retry + resumable upload. A photo that fails to upload stays queued and
   visible as pending — never silently dropped.</li>
 </ul>
 <h3 id="65-updates">6.5 Updates</h3>
 <ul>
-<li>Store updates via Play (staged rollout). Web shell updates via service
-  worker (new version prompt, never a forced reload mid-shift). Version
-  skew policy: the app must work against the previous two API versions.</li>
+<li>Store updates via Play (staged rollout) + in-app update API (flexible
+  updates; immediate updates only for critical security fixes). Web shell
+  updates via service worker (new version prompt, never a forced reload
+  mid-shift). Version skew policy: the app must work against the previous
+  two API versions.</li>
 </ul>
 <hr />
 <h2 id="7-authentication-authorization-with-vivereply-suite">7. Authentication &amp; authorization (with ViveReply Suite)</h2>
@@ -1093,11 +1148,17 @@ before the first Play submission and before the first paying property.</p>
   project in Phase B). Immutable deploys, instant rollback, preview URL per
   PR.</li>
 <li><strong>API + DB:</strong> the Suite's existing deployment (Next.js + Supabase
-  Postgres + Prisma). No new backend service in Phase A.</li>
+  Postgres + Prisma).</li>
+<li><strong>Integration Service (Python/FastAPI):</strong> one Docker container on a
+  lightweight host (Render, Fly.io or a small VPS — founder to pick, §13).
+  ~256–512 MB RAM is enough: it is stateless except for its small sync
+  ledger (Postgres) and a Redis queue for background jobs. Health endpoint</li>
+<li>zero-downtime deploys; logs shipped to the same sink as the Suite.</li>
 <li><strong>Android:</strong> Play Internal track on every tagged release; promotion is
   manual (closed → production).</li>
-<li><strong>CI (GitHub Actions) on every PR:</strong> lint, typecheck, unit tests, E2E
-  (Playwright — including an offline-mode run), <code>npm audit</code>, secret scan.
+<li><strong>CI (GitHub Actions) on every PR:</strong> web — lint, typecheck, unit tests,
+  E2E (Playwright — including an offline-mode run), <code>npm audit</code>, secret
+  scan; Python — ruff, mypy, pytest; Android — Gradle lint, unit tests.
   <code>main</code> deploys to staging automatically; production is a manual approval.</li>
 <li><strong>Caching rules:</strong> app shell + static assets immutable (<code>max-age=1y</code>,
   content-hashed); API responses <code>no-store</code>; service-worker updates prompt
@@ -1235,15 +1296,19 @@ before the first Play submission and before the first paying property.</p>
 </tr>
 <tr>
 <td>Dec 2026</td>
-<td>Phase 2 build: Suite wiring, sync engine, IndexedDB migration, pilot setup</td>
+<td>Phase 2 build: Suite wiring, Python Integration Service, sync engine, IndexedDB migration, pilot setup</td>
 </tr>
 <tr>
 <td>Jan 2027</td>
-<td>Pilot at Krishnachura Retreat (staff UAT week) + Android beta (closed track)</td>
+<td>Pilot at Krishnachura Retreat (staff UAT week, PWA) + native Android build</td>
 </tr>
 <tr>
 <td>Feb 2027</td>
-<td>Production launch (PWA + Android) for Suite properties</td>
+<td>Android beta (closed track) + production launch (PWA) for Suite properties</td>
+</tr>
+<tr>
+<td>Mar 2027</td>
+<td>Android production launch (staged rollout)</td>
 </tr>
 </tbody>
 </table>
@@ -1252,7 +1317,12 @@ each gate.</p>
 <hr />
 <h2 id="13-decisions-needed-from-the-founder">13. Decisions needed from the founder</h2>
 <ul>
-<li>[ ] <strong>Android path:</strong> Capacitor (recommended, §2.2) or TWA (lighter)?</li>
+<li>[x] <strong>Android path:</strong> native Kotlin + Python FastAPI — <strong>confirmed by
+      founder 5 Nov 2026</strong> (light, secure, reliable, integratable with
+      other products).</li>
+<li>[ ] <strong>Integration Service hosting:</strong> Render, Fly.io, or a small VPS?</li>
+<li>[ ] <strong>Integration Service repo:</strong> separate repo (recommended — shared
+      across products) or inside the Suite repo?</li>
 <li>[ ] <strong>Deployment topology:</strong> embedded Suite module first (recommended,
       §4.5) or standalone from day one?</li>
 <li>[ ] <strong>Business model:</strong> bundled with Suite, or a subscription add-on
