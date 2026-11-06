@@ -11,6 +11,9 @@ whole job with zero internet. Turn on airplane mode and it still works.
 
 **Live demo:** https://swopno1.github.io/roomready/ · **Video:** (link lands here before the deadline)
 
+![Housekeeping staff checking rooms offline](feature-checklist.jpg)
+![Room readiness board on device](feature-board.jpg)
+
 <!-- Founder: save the Yard screenshot as screenshot.png next to this file, then uncomment:
 ![RoomReady rooms board, offline](screenshot.png)
 -->

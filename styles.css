@@ -39,12 +39,6 @@ h1, h2 { font-family: Georgia, "Times New Roman", serif; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-mark {
   width: 44px; height: 44px;
-  display: grid; place-items: center;
-  background: var(--accent);
-  color: #fff;
-  font-family: Georgia, serif;
-  font-weight: bold;
-  font-size: 18px;
   border-radius: 8px;
 }
 .brand h1 { margin: 0; font-size: 22px; letter-spacing: .02em; }

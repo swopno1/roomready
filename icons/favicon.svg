@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <title>RoomReady favicon</title>
+  <rect width="24" height="24" rx="5" fill="#1d3a2f"/>
+  <rect x="6" y="6" width="10" height="10" rx="3" fill="none" stroke="#f5efe3" stroke-width="2.4"/>
+  <polyline points="9,12 11,14 16.5,8.5" fill="none" stroke="#a94e24" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
