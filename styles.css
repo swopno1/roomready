@@ -23,7 +23,7 @@ body {
   line-height: 1.5;
 }
 
-h1, h2 { font-family: Georgia, "Times New Roman", serif; }
+h1, h2 { font-family: Georgia, "Times New Roman", serif; text-wrap: balance; }
 
 .topbar {
   display: flex;
@@ -65,7 +65,8 @@ h1, h2 { font-family: Georgia, "Times New Roman", serif; }
 .tab {
   border: none;
   background: none;
-  padding: 10px 14px;
+  padding: 12px 14px;
+  min-height: 44px;
   font-size: 15px;
   font-weight: 600;
   color: var(--ink);
@@ -100,7 +101,7 @@ main { max-width: 860px; margin: 0 auto; padding: 18px; }
   padding: 14px;
   text-align: center;
 }
-.stat strong { display: block; font-size: 30px; font-family: Georgia, serif; }
+.stat strong { display: block; font-size: 30px; font-family: Georgia, serif; color: var(--teal-dark); font-variant-numeric: tabular-nums; }
 .stat span { font-size: 13px; color: #555; }
 
 .card-list { display: grid; gap: 12px; }
@@ -109,6 +110,7 @@ main { max-width: 860px; margin: 0 auto; padding: 18px; }
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(28, 36, 32, .06);
 }
 .card h3 { margin: 0 0 4px; font-size: 18px; }
 .card h2 { margin-top: 0; }
@@ -116,6 +118,7 @@ main { max-width: 860px; margin: 0 auto; padding: 18px; }
 
 .room-card { cursor: pointer; }
 .room-card:hover { border-color: var(--teal); }
+.room-card:active { background: var(--color-surface-2, #ece4cd); }
 .room-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .room-type { font-size: 13px; color: #666; }
 .room-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; font-size: 13px; }
@@ -156,13 +159,15 @@ main { max-width: 860px; margin: 0 auto; padding: 18px; }
 
 .btn {
   padding: 10px 16px;
+  min-height: 44px;
   border: 1px solid var(--teal-dark);
   background: var(--card);
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
 }
+.btn:active { filter: brightness(.94); }
 .btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
 .btn.danger { border-color: #9b2c2c; color: #9b2c2c; }
 .btn.small { padding: 6px 10px; font-size: 13px; }
@@ -179,9 +184,9 @@ main { max-width: 860px; margin: 0 auto; padding: 18px; }
   background: #fff;
 }
 
-.check { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee5cf; }
+.check { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee5cf; }
 .check:last-child { border-bottom: none; }
-.check input { width: 20px; height: 20px; accent-color: var(--teal); }
+.check input { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--teal); }
 .check span.done { text-decoration: line-through; color: #888; }
 .check .who { margin-left: auto; font-size: 12px; color: #888; }
 
@@ -190,3 +195,35 @@ main { max-width: 860px; margin: 0 auto; padding: 18px; }
 .proof-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee5cf; }
 
 footer { text-align: center; color: #888; font-size: 13px; padding: 24px 18px 32px; }
+
+/* Visible keyboard focus on every control. */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+/* Offline dot gently pulses so the badge reads live (still image when
+   reduced motion is preferred). Opacity-only: compositor-friendly. */
+@media (prefers-reduced-motion: no-preference) {
+  .net.offline .net-dot { animation: net-pulse 2s ease-in-out infinite; }
+  @keyframes net-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .45; }
+  }
+}
+
+/* Phones: the header sticks so the brand + offline badge stay visible
+   while scrolling a long room list. The bar is in-flow sticky, so it
+   never covers focused content at the top of a view. */
+@media (max-width: 640px) {
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 2px 8px rgba(28, 36, 32, .18);
+    padding: 10px 14px;
+  }
+  .brand h1 { font-size: 19px; }
+  .brand p { font-size: 12px; }
+  main { padding: 14px; }
+}
