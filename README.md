@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://swopno1.github.io/roomready/">Try the live demo</a></strong> · <strong>Video:</strong> (link lands here before the deadline)
+  <strong><a href="https://swopno1.github.io/roomready/">Try the live demo</a></strong> · <strong><a href="https://youtube.com/shorts/ziCT43-OXW4">Watch the demo video</a></strong>
 </p>
 
 ![Housekeeping staff checking rooms offline](feature-checklist.jpg)
