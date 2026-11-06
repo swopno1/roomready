@@ -1,85 +1,82 @@
-# RoomReady — Offline Housekeeping for Resorts
+<p align="center">
+  <img src="icons/logo.svg" width="120" alt="RoomReady logo">
+</p>
 
-[![Yard #6](https://img.shields.io/badge/Hackyard-Yard_%236_Offline-black)](https://hackyard.tech/yards/yard-6)
-[![Offline](https://img.shields.io/badge/network-zero_requests-brightgreen)](https://github.com/swopno1/roomready)
-[![PWA](https://img.shields.io/badge/PWA-installable-blue)](https://github.com/swopno1/roomready)
-[![Vanilla JS](https://img.shields.io/badge/stack-vanilla_HTML_CSS_JS-yellow)](https://github.com/swopno1/roomready)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+<h1 align="center">RoomReady</h1>
 
-**Hackyard Yard #6 · theme: Offline.** A housekeeping PWA for resorts that does its
-whole job with zero internet. Turn on airplane mode and it still works.
+<p align="center">
+  <strong>Every room ready.</strong><br>
+  Offline-first housekeeping for resorts — rooms, turnover checklists, and
+  maintenance tickets that work with zero internet.<br>
+  A ViveReply Suite product.
+</p>
 
-**Live demo:** https://swopno1.github.io/roomready/ · **Video:** (link lands here before the deadline)
+<p align="center">
+  <a href="https://hackyard.tech/yards/yard-6"><img src="https://img.shields.io/badge/Hackyard-Yard_%236_Offline-black" alt="Yard #6"></a>
+  <img src="https://img.shields.io/badge/network-zero_requests-brightgreen" alt="zero network requests">
+  <img src="https://img.shields.io/badge/PWA-installable-blue" alt="installable PWA">
+  <img src="https://img.shields.io/badge/stack-vanilla_HTML_CSS_JS-yellow" alt="vanilla stack">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT license"></a>
+</p>
+
+<p align="center">
+  <strong><a href="https://swopno1.github.io/roomready/">Try the live demo</a></strong> · <strong>Video:</strong> (link lands here before the deadline)
+</p>
 
 ![Housekeeping staff checking rooms offline](feature-checklist.jpg)
-![Room readiness board on device](feature-board.jpg)
-
-<!-- Founder: save the Yard screenshot as screenshot.png next to this file, then uncomment:
-![RoomReady rooms board, offline](screenshot.png)
--->
 
 ## What it does
 
-- **Rooms** — 21 rooms across 5 room types (Terracotta Villa, Bamboo Cottage,
-  Clay House Suite, Palm Loft, Earth Lodge) with live status: Ready / Dirty /
-  Cleaning / Inspected / Out of order. Search + status filter included.
-- **Turnover checklists** — 8-step checklist per room, tap to tick off. Status
-  advances Dirty → Cleaning → Inspected → Ready, with progress bars everywhere.
-- **Maintenance tickets** — create, prioritise (Low → Urgent), resolve. Open
-  tickets count on the tab.
-- **Dashboard** — rooms ready, rooms dirty, rooms cleaning, open tickets, and
-  what needs attention right now.
-- **Offline proof page** — live network state, service-worker state, on-device
-  storage size, and a demo-data reset. The receipts for every claim below.
+- **21 rooms, 5 room types** with live status (Ready / Dirty / Cleaning /
+  Inspected / Out of order), search, and status filter.
+- **Turnover checklists** — 8 steps per room, tap to tick, progress bars,
+  room notes. Status advances Dirty → Cleaning → Inspected → Ready.
+- **Maintenance tickets** — create, prioritise (Low → Urgent), resolve.
+- **Dashboard** — what's ready, what's dirty, what needs attention now.
+- **Offline-proof page** — live network state, service-worker state, and
+  on-device storage size. The receipts for every claim on this page.
+
+## Proof: filmed in airplane mode
+
+| Dirty room, no signal | Checklist ticked offline | Ticket filed offline |
+|---|---|---|
+| <img src="images/screen-room-dirty.jpeg" width="260" alt="Dirty room with empty checklist, offline badge visible"> | <img src="images/screen-checklist-done.jpeg" width="260" alt="Checklist 2 of 8 ticked, progress bar, offline badge visible"> | <img src="images/screen-tickets.jpeg" width="260" alt="New maintenance ticket form, offline badge visible"> |
+
+[![Watch the offline clip](feature-board.jpg)](images/demo-clip.mp4)
+
+*▶ Watch the clip: the full turnover flow with the network off.*
 
 ## The airplane-mode test (60 seconds)
 
-1. Open the demo (or serve the folder: `python3 -m http.server`) and load once.
-2. Turn on airplane mode (wifi + data off). Watch the header badge flip to
-   *Offline — still working*.
-3. Reload. The app opens, rooms load, checklists tick, tickets save.
-4. Open DevTools → Network: **zero remote requests**. Everything is local.
-
-## Install it
-
-It's a real PWA: valid manifest, 192 + 512 icons, cache-first service worker.
-Add to home screen from the demo URL, then kill the network — it launches and
-runs fully offline.
+1. Open the demo and load once.
+2. Turn on airplane mode. The badge flips to *Offline — still working*.
+3. Reload. Rooms load, checklists tick, tickets save.
+4. DevTools → Network: **zero remote requests**. Everything is local.
 
 ## How the offline works
 
 - **Zero dependencies.** No CDN, no fonts, no analytics, no `fetch()` at all.
-  Every asset is a local file (~650 lines total, no framework, no build step).
-- **Service worker (`sw.js`).** Cache-first: on first load it caches the whole
-  app, then serves from cache on every later load — online or off.
-- **On-device storage.** Rooms, checklists and tickets live in `localStorage`
-  under `roomready.v1`. Nothing leaves the device, ever.
-- **Live indicator.** The header badge follows `navigator.onLine` and flips to
-  *Offline — still working* the moment the network drops.
+  ~650 lines of vanilla HTML/CSS/JS, no framework, no build step.
+- **Service worker.** Cache-first: the whole app cached on first load, served
+  from cache on every later load — online or off.
+- **On-device storage.** Rooms, checklists, and tickets live in
+  `localStorage`. Nothing leaves the device, ever.
+- **Installable.** Valid manifest, maskable + Apple icons, add-to-homescreen
+  ready. Any static host works (`python3 -m http.server 8000`).
 
-## Run it
+## Where this goes
 
-```bash
-python3 -m http.server 8000
-# open http://localhost:8000
-```
+RoomReady is day one of a bigger plan:
 
-No build step, no install, no backend. Any static host works — or open
-`index.html` directly for the app shell (service worker needs http/https).
-
-## Why this
-
-Resort staff in places like Cox's Bazar work where the wifi doesn't reach.
-Housekeeping shouldn't stop when the network does — and a front desk that can
-prove a room is ready, with receipts, beats a radio call every time.
-
-## Vision
-
-RoomReady is built to become the offline edge of a modern resort PMS: a
-standalone add-on that runs the floor with no signal and syncs with property
-systems when back online — the same way our [ViveReply Concierge](https://github.com/swopno1/vivereply-concierge)
-serves guests around the clock. Offline-first today, connected tomorrow,
-native Android on the roadmap.
+- **Native Android app** — the same offline engine as a Play Store app with
+  push notifications for urgent tickets and assignments.
+- **ViveReply Suite integration** — rooms, bookings, and staff flow in from
+  [app.vivereply.com](https://app.vivereply.com); turnover status and tickets
+  sync back when the device is online. Check-in stays blocked until the room
+  is Ready.
+- **Part of the ViveReply family** — alongside [vivereply.com](https://vivereply.com)
+  and [ViveReply Concierge](https://github.com/swopno1/vivereply-concierge),
+  one connected platform for resorts that works with or without a signal.
 
 ## License
 
