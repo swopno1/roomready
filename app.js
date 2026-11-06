@@ -276,6 +276,10 @@ function renderNet() {
 }
 window.addEventListener('online', renderNet);
 window.addEventListener('offline', renderNet);
+// Re-check when returning to the app: an OS can throttle network events
+// while the page is backgrounded, leaving the badge stale.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) renderNet(); });
+window.addEventListener('pageshow', renderNet);
 
 function renderAbout() {
   renderNet();
